@@ -3,8 +3,10 @@ import json
 import random
 import datetime
 import os
+import time
 from dateutil import parser
 from groq import Groq
+from urllib.parse import quote
 
 # Load .env file for local development
 try:
@@ -20,6 +22,7 @@ LINKEDIN_ACCESS_TOKEN = os.getenv('LINKEDIN_ACCESS_TOKEN', '')
 LINKEDIN_USER_URN = os.getenv('LINKEDIN_USER_URN', '')
 GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'cliff-de-tech')
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+UNSPLASH_ACCESS_KEY = os.getenv('UNSPLASH_ACCESS_KEY', '')  # Optional: for fetching images
 
 # Validate credentials are set
 if not LINKEDIN_ACCESS_TOKEN or not LINKEDIN_USER_URN or not GROQ_API_KEY:
@@ -43,6 +46,9 @@ ABOUT THE VOICE:
 
 LINKEDIN POST STRUCTURE:
 1. Hook (1-2 sentences): Relatable question, observation, or story
+   - CRITICAL: NEVER start with "As I", "As a", or any repetitive phrases from previous posts
+   - Be creative and unpredictable - every post opening must be completely different
+   - Vary your sentence structure, tone, and approach each time
 2. Body (3-5 sentences): Develop the idea with a specific example or experience
 3. Insight (1-2 sentences): What you learned and why it matters
 4. Call to Action (1 sentence): Engage your network
@@ -203,6 +209,7 @@ WRITE A COMPLETE LINKEDIN POST - MUST INCLUDE EVERYTHING BELOW:
 
 Structure (200-300 words total):
 1. Hook (1-2 sentences) - relatable moment about coding/building
+   - CRITICAL: Avoid ALL repetitive opening patterns - be completely unique each time
 2. Story (3-4 sentences) - what this code work involved and what you learned  
 3. Value (1-2 sentences) - why it matters or insight gained
 4. Question (1 sentence) - ask your network something
@@ -331,25 +338,205 @@ Requirements:
         print("💡 Tip: Make sure your Groq API key is valid and set in GROQ_API_KEY")
         return None
 
+# --- IMAGE FUNCTIONS ---
+def get_relevant_image(post_content):
+    """Fetch a relevant image from Unsplash based on post content"""
+    if not UNSPLASH_ACCESS_KEY:
+        print("ℹ️  No Unsplash API key set, skipping image fetch")
+        return None
+    
+    # Analyze post content for better image matching (Creative Technologist theme)
+    content_lower = post_content.lower()
+    
+    # Prioritize images with CODE VISIBLE on screens - more engaging and relevant
+    if any(word in content_lower for word in ['ui', 'ux', 'design', 'interface', 'beautiful', 'aesthetic']):
+        search_term = random.choice([
+            'designer working on ui design screen',
+            'web design code on monitor',
+            'figma interface on laptop screen',
+            'graphic design software screen'
+        ])
+    elif any(word in content_lower for word in ['react', 'javascript', 'frontend', 'web app', 'website']):
+        search_term = random.choice([
+            'javascript code on laptop screen',
+            'react code visible on monitor',
+            'web developer coding javascript',
+            'frontend code on computer display'
+        ])
+    elif any(word in content_lower for word in ['github', 'commit', 'code', 'repository', 'project']):
+        search_term = random.choice([
+            'github code visible on screen',
+            'programming code displayed on laptop',
+            'developer viewing code on monitor',
+            'coding project on computer screen'
+        ])
+    elif any(word in content_lower for word in ['learn', 'student', 'study', 'journey', 'grow']):
+        search_term = random.choice([
+            'student coding with code on screen',
+            'learning programming laptop display',
+            'studying code on computer monitor',
+            'person learning to code display'
+        ])
+    elif any(word in content_lower for word in ['team', 'collaborate', 'community', 'together']):
+        search_term = random.choice([
+            'developers working code on screens',
+            'team programming computers display',
+            'programmers pair coding screen',
+            'developers collaboration code visible'
+        ])
+    elif any(word in content_lower for word in ['build', 'create', 'creative', 'innovation']):
+        search_term = random.choice([
+            'developer building app code screen',
+            'programmer creating software display',
+            'coding website project screen',
+            'software development code visible'
+        ])
+    else:
+        # Default: ALWAYS prioritize code/work visible on screen
+        search_term = random.choice([
+            'code on laptop screen close up',
+            'programming code visible display',
+            'developer working code monitor',
+            'software engineer coding screen',
+            'html css code on screen',
+            'python code on laptop display'
+        ])
+    
+    print(f"🖼️  Searching for image: '{search_term}'...")
+    
+    try:
+        # Add more filters to get better quality, relevant tech photos
+        url = f"https://api.unsplash.com/photos/random?query={quote(search_term)}&orientation=landscape&content_filter=high"
+        headers = {
+            'Authorization': f'Client-ID {UNSPLASH_ACCESS_KEY}'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            # Download the image directly and return the binary data
+            # This avoids 404 issues with external URLs
+            image_download_url = data['urls']['regular']
+            image_description = data.get('alt_description', 'No description')
+            print(f"✅ Found image: {image_description}")
+            print(f"   Downloading...")
+            
+            # Download image content
+            img_response = requests.get(image_download_url, timeout=10)
+            if img_response.status_code == 200:
+                print(f"✅ Image downloaded successfully ({len(img_response.content)} bytes)")
+                return img_response.content  # Return binary data instead of URL
+            else:
+                print(f"⚠️  Failed to download image: {img_response.status_code}")
+                return None
+        else:
+            print(f"⚠️  Unsplash API error: {response.status_code}")
+            if response.status_code == 403:
+                print("   Check your Unsplash API key and rate limits")
+            elif response.status_code == 401:
+                print("   Invalid API key - check your UNSPLASH_ACCESS_KEY")
+            print(f"   Response: {response.text[:200]}")
+            return None
+    except Exception as e:
+        print(f"⚠️  Error fetching image: {e}")
+        return None
+
+def upload_image_to_linkedin(image_data):
+    """Upload an image to LinkedIn and return the asset URN"""
+    print(f"📤 Uploading image to LinkedIn...")
+    
+    try:
+        # Step 1: Register the upload
+        register_url = "https://api.linkedin.com/v2/assets?action=registerUpload"
+        headers = {
+            'Authorization': f'Bearer {LINKEDIN_ACCESS_TOKEN}',
+            'Content-Type': 'application/json',
+            'X-Restli-Protocol-Version': '2.0.0'
+        }
+        
+        register_data = {
+            "registerUploadRequest": {
+                "recipes": ["urn:li:digitalmediaRecipe:feedshare-image"],
+                "owner": f"urn:li:person:{LINKEDIN_USER_URN}",
+                "serviceRelationships": [
+                    {
+                        "relationshipType": "OWNER",
+                        "identifier": "urn:li:userGeneratedContent"
+                    }
+                ]
+            }
+        }
+        
+        response = requests.post(register_url, headers=headers, json=register_data)
+        if response.status_code != 200:
+            print(f"❌ Failed to register upload: {response.status_code}")
+            print(response.text)
+            return None
+        
+        register_response = response.json()
+        asset_urn = register_response['value']['asset']
+        upload_url = register_response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']
+        
+        # Step 2: Upload the image data directly (no download needed now)
+        print("⬆️  Uploading to LinkedIn...")
+        upload_headers = {
+            'Authorization': f'Bearer {LINKEDIN_ACCESS_TOKEN}',
+        }
+        upload_response = requests.put(upload_url, headers=upload_headers, data=image_data)
+        
+        if upload_response.status_code in [200, 201]:
+            print(f"✅ Image uploaded successfully: {asset_urn}")
+            return asset_urn
+        else:
+            print(f"❌ Failed to upload image: {upload_response.status_code}")
+            print(upload_response.text)
+            return None
+            
+    except Exception as e:
+        print(f"⚠️  Error uploading image: {e}")
+        return None
+
 # --- THE POSTING FUNCTION ---
-def post_to_linkedin(message_text):
+def post_to_linkedin(message_text, image_asset_urn=None):
+    """Post to LinkedIn with optional image"""
     url = "https://api.linkedin.com/v2/ugcPosts"
     headers = {
         'Authorization': f'Bearer {LINKEDIN_ACCESS_TOKEN}',
         'Content-Type': 'application/json',
         'X-Restli-Protocol-Version': '2.0.0'
     }
-    post_data = {
-        "author": f"urn:li:person:{LINKEDIN_USER_URN}",
-        "lifecycleState": "PUBLISHED",
-        "specificContent": {
-            "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": message_text},
-                "shareMediaCategory": "NONE"
-            }
-        },
-        "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"}
-    }
+    
+    # Prepare post data based on whether we have an image
+    if image_asset_urn:
+        post_data = {
+            "author": f"urn:li:person:{LINKEDIN_USER_URN}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {"text": message_text},
+                    "shareMediaCategory": "IMAGE",
+                    "media": [
+                        {
+                            "status": "READY",
+                            "media": image_asset_urn
+                        }
+                    ]
+                }
+            },
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"}
+        }
+    else:
+        post_data = {
+            "author": f"urn:li:person:{LINKEDIN_USER_URN}",
+            "lifecycleState": "PUBLISHED",
+            "specificContent": {
+                "com.linkedin.ugc.ShareContent": {
+                    "shareCommentary": {"text": message_text},
+                    "shareMediaCategory": "NONE"
+                }
+            },
+            "visibility": {"com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"}
+        }
     
     print(f"🤖 Posting: '{message_text[:30]}...'")
     response = requests.post(url, headers=headers, json=post_data)
@@ -357,6 +544,7 @@ def post_to_linkedin(message_text):
         print("\n✅ SUCCESS! Post is live.")
     else:
         print(f"\n❌ FAILED. {response.status_code}")
+        print(response.text)
 
 # --- MAIN BRAIN ---
 if __name__ == "__main__":
@@ -405,8 +593,23 @@ if __name__ == "__main__":
         if TEST_MODE:
             print("\n✅ TEST MODE: Post preview complete (not posted to LinkedIn)")
             print("📄 Full post saved to: last_generated_post.txt")
+            
+            # In test mode, still try to fetch/show image info
+            image_data = get_relevant_image(post_content)
+            if image_data:
+                print(f"🖼️  Image downloaded successfully ({len(image_data)} bytes - would be used in live mode)")
         else:
-            post_to_linkedin(post_content)
+            # Fetch and upload image
+            image_data = get_relevant_image(post_content)
+            image_asset_urn = None
+            
+            if image_data:
+                image_asset_urn = upload_image_to_linkedin(image_data)
+                if image_asset_urn:
+                    print("🎨 Post will include an image!")
+            
+            # Post with or without image
+            post_to_linkedin(post_content, image_asset_urn)
         print("="*60)
     else:
         print("❌ Failed to generate post content")
