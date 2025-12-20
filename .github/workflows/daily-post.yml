@@ -2,19 +2,21 @@ name: Daily LinkedIn Post
 
 on:
   schedule:
-    # Runs every day at 9:00 AM UTC (adjust timezone as needed)
     - cron: '0 9 * * *'
-  workflow_dispatch:  # Allows manual trigger from GitHub
+  workflow_dispatch:
 
 jobs:
   post:
     runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hours max (GitHub Actions free tier limit)
+    permissions:
+      contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
@@ -28,12 +30,16 @@ jobs:
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_USER_URN: ${{ secrets.LINKEDIN_USER_URN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          GITHUB_USERNAME: ${{ secrets.GITHUB_USERNAME }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          # Prefer a repo secret `MY_GITHUB_USERNAME`; if not set, fall back to the workflow actor
+          MY_GITHUB_USERNAME: ${{ secrets.MY_GITHUB_USERNAME || github.actor }}
+          # Pass token for authenticated API calls: prefer custom secret, otherwise built-in GITHUB_TOKEN
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
         run: python bot.py
 
       - name: Upload last generated post
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: generated-posts
           path: last_generated_post.txt

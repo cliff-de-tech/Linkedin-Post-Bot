@@ -20,14 +20,20 @@ git push origin main
 
 Go to your repo on GitHub → **Settings → Secrets and variables → Actions**
 
-Click **New repository secret** and add these 4 secrets:
+Click **New repository secret** and add these 5 secrets:
 
 | Secret Name | Value |
 |---|---|
 | `LINKEDIN_ACCESS_TOKEN` | Your LinkedIn OAuth token (from bot.py) |
 | `LINKEDIN_USER_URN` | Your LinkedIn user URN (from bot.py) |
-| `GEMINI_API_KEY` | Your Google Gemini API key (from bot.py) |
+| `GROQ_API_KEY` | Your Groq API key (from bot.py) |
+| `UNSPLASH_ACCESS_KEY` | Your Unsplash API key (for images, optional) |
 | `GITHUB_TOKEN` | GitHub auto-generates this; use default |
+
+Note: GitHub does NOT allow secret names that start with `GITHUB_`. If you tried to add a secret named `GITHUB_USERNAME` you will see an error. You have two options:
+
+- Use the built-in `${{ github.actor }}` in the workflow (the workflow already uses this by default), so you do not need to set a username secret.
+- Or add a secret or repository variable with a different name (for example `MY_GITHUB_USERNAME`) and set that value in your repo Settings → Secrets (or Variables). If you choose this, update the workflow to pass it into the job as `MY_GITHUB_USERNAME`.
 
 **⚠️ NEVER commit credentials to your repo!** Secrets keep them safe.
 
