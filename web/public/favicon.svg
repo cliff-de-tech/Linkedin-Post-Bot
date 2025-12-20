@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2563EB;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9333EA;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background rounded square -->
+  <rect width="32" height="32" rx="6" fill="url(#grad)"/>
+  
+  <!-- Lightning bolt icon -->
+  <path d="M18 4l-8 12h6l-2 12 10-14h-6l4-10z" fill="white" stroke="white" stroke-width="0.5"/>
+</svg>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Generate Favicon</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f3f4f6;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      canvas {
+        border: 2px solid #ddd;
+        margin: 10px;
+        background: white;
+      }
+      .info {
+        margin-top: 20px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Favicon Generator</h1>
+    <div>
+      <canvas id="favicon-16" width="16" height="16"></canvas>
+      <canvas id="favicon-32" width="32" height="32"></canvas>
+      <canvas id="favicon-180" width="180" height="180"></canvas>
+    </div>
+    <div class="info">
+      <p><strong>Instructions:</strong></p>
+      <ol>
+        <li>Right-click on each canvas</li>
+        <li>Select "Save image as..."</li>
+        <li>Save as: favicon-16x16.png, favicon-32x32.png, apple-touch-icon.png</li>
+        <li>Place files in the /public folder</li>
+      </ol>
+    </div>
+
+    <script>
+      function drawFavicon(canvasId, size) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#2563EB');
+        gradient.addColorStop(1, '#9333EA');
+        
+        // Draw rounded rectangle background
+        const radius = size * 0.2;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(size - radius, 0);
+        ctx.quadraticCurveTo(size, 0, size, radius);
+        ctx.lineTo(size, size - radius);
+        ctx.quadraticCurveTo(size, size, size - radius, size);
+        ctx.lineTo(radius, size);
+        ctx.quadraticCurveTo(0, size, 0, size - radius);
+        ctx.lineTo(0, radius);
+        ctx.quadraticCurveTo(0, 0, radius, 0);
+        ctx.fill();
+        
+        // Draw lightning bolt
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = size * 0.02;
+        
+        const scale = size / 32;
+        ctx.beginPath();
+        ctx.moveTo(18 * scale, 4 * scale);
+        ctx.lineTo(10 * scale, 16 * scale);
+        ctx.lineTo(16 * scale, 16 * scale);
+        ctx.lineTo(14 * scale, 28 * scale);
+        ctx.lineTo(24 * scale, 14 * scale);
+        ctx.lineTo(18 * scale, 14 * scale);
+        ctx.lineTo(22 * scale, 4 * scale);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      
+      // Draw all sizes
+      drawFavicon('favicon-16', 16);
+      drawFavicon('favicon-32', 32);
+      drawFavicon('favicon-180', 180);
+    </script>
+  </body>
+</html>

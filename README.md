@@ -35,13 +35,22 @@ An automated Python bot that posts engaging content to LinkedIn on a schedule. P
 3. Under **Auth** settings, set your Authorized Redirect URL to: `http://localhost:8000/callback`
 4. Copy your **Client ID** and **Client Secret**
 
-### 2. Update Credentials
+### 2. Configure Environment Variables
 
-Edit `auth.py` and replace:
-```python
-CLIENT_ID = 'your_client_id_here'
-CLIENT_SECRET = 'your_client_secret_here'
+1. Copy the example environment file:
+```bash
+cp .env.example .env
 ```
+
+2. Edit `.env` and fill in your credentials:
+```bash
+LINKEDIN_CLIENT_ID=your_client_id_here
+LINKEDIN_CLIENT_SECRET=your_client_secret_here
+GROQ_API_KEY=your_groq_api_key_here
+# Add other optional keys as needed
+```
+
+See [.env.example](.env.example) for detailed instructions on obtaining each API key.
 
 ### 3. Run Authentication
 
