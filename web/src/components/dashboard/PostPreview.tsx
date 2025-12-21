@@ -1,90 +1,224 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { showToast } from '@/lib/toast';
 
 interface PostPreviewProps {
     preview: string;
+    imageUrl?: string | null;
+    onEdit?: () => void;
 }
 
-export const PostPreview: React.FC<PostPreviewProps> = ({ preview }) => {
+/**
+ * PostPreview - Shows the generated post with LinkedIn-native styling.
+ * 
+ * Features:
+ * - LinkedIn typography and colors
+ * - Hashtag highlighting
+ * - URL detection
+ * - Copy to clipboard
+ * - Character count display
+ */
+export const PostPreview: React.FC<PostPreviewProps> = ({ preview, imageUrl, onEdit }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        if (!preview) return;
+        try {
+            await navigator.clipboard.writeText(preview);
+            setCopied(true);
+            showToast.success('Copied to clipboard!');
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            showToast.error('Failed to copy');
+        }
+    };
+
+    // Format content with LinkedIn-style highlighting
+    const formatContent = (text: string) => {
+        return text.split('\n').map((line, i) => {
+            const parts = line.split(/(https?:\/\/[^\s]+|#\w+)/g);
+            return (
+                <span key={i}>
+                    {parts.map((part, j) => {
+                        if (part.startsWith('#')) {
+                            return (
+                                <span key={j} className="text-[#0a66c2] dark:text-blue-400 font-medium">
+                                    {part}
+                                </span>
+                            );
+                        } else if (part.match(/^https?:\/\//)) {
+                            return (
+                                <a
+                                    key={j}
+                                    href={part}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#0a66c2] dark:text-blue-400 hover:underline break-all"
+                                >
+                                    {part}
+                                </a>
+                            );
+                        }
+                        return <span key={j}>{part}</span>;
+                    })}
+                    {i < text.split('\n').length - 1 && <br />}
+                </span>
+            );
+        });
+    };
+
+    const charCount = preview?.length || 0;
+    const isNearLimit = charCount > 2700;
+    const isOverLimit = charCount > 3000;
+
     return (
-        <div className="bg-white dark:bg-white/5 rounded-2xl shadow-lg border border-gray-100 dark:border-white/10 p-8 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Post Preview</h3>
-                <div className="flex items-center space-x-2">
-                    {preview && (
-                        <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(preview);
-                                // toast is handled by parent or we could add local state, but simple is fine
-                            }}
-                            className="px-3 py-2 text-sm bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 rounded-lg transition-all flex items-center"
-                            title="Copy to clipboard"
-                        >
-                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            Copy
-                        </button>
-                    )}
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/20">
-                        <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        <div className="bg-white dark:bg-white/5 rounded-2xl shadow-lg border border-gray-100 dark:border-white/10 p-6 h-full flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#0a66c2] to-[#004182] rounded-lg flex items-center justify-center shadow-lg">
+                        <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                         </svg>
                     </div>
-                </div>
-            </div>
-
-            <div className="border-2 border-gray-200 dark:border-white/10 rounded-xl p-6 flex-1 bg-gradient-to-br from-gray-50 to-white dark:from-slate-900 dark:to-slate-800 relative overflow-hidden min-h-[400px]">
-                {preview ? (
-                    <div className="relative z-10 flex flex-col h-full">
-                        <div className="absolute -top-2 -left-2 w-16 h-16 bg-blue-500 rounded-full opacity-10 blur-xl"></div>
-                        <div className="absolute -bottom-2 -right-2 w-16 h-16 bg-purple-500 rounded-full opacity-10 blur-xl"></div>
-                        <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 leading-relaxed font-normal flex-1">{preview}</div>
-
-                        {/* LinkedIn Post Preview Frame */}
-                        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-white/10">
-                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                                </svg>
-                                Preview on LinkedIn
-                            </div>
-                        </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">LinkedIn Preview</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">How your post will appear</p>
                     </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-white/10 dark:to-white/5 rounded-2xl flex items-center justify-center mb-4">
-                            <svg className="w-10 h-10 text-gray-400 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                        <p className="text-gray-400 dark:text-gray-500 italic text-lg mb-2">No preview yet</p>
-                        <p className="text-gray-500 dark:text-gray-600 text-sm max-w-xs">Click a GitHub activity or configure your context and click "Generate Preview"</p>
+                </div>
+
+                {preview && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleCopy}
+                            className={`px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-1.5 ${copied
+                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                    : 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200'
+                                }`}
+                        >
+                            {copied ? (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Copied!
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Copy
+                                </>
+                            )}
+                        </button>
                     </div>
                 )}
             </div>
 
-            {/* Tips Section */}
-            <div className="mt-6 bg-blue-50 dark:bg-blue-900/10 border-l-4 border-blue-600 rounded-r-lg p-4">
-                <div className="flex items-start">
-                    <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                        <p className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Quick Tips</p>
-                        <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-                            <li className="flex items-start">
-                                <span className="text-blue-600 mr-2">•</span>
-                                <span>Click any GitHub activity to auto-populate context</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-blue-600 mr-2">•</span>
-                                <span>Use templates for quick post ideas</span>
-                            </li>
-                            <li className="flex items-start">
-                                <span className="text-blue-600 mr-2">•</span>
-                                <span>Test mode shows preview without posting to LinkedIn</span>
-                            </li>
+            {/* Post Preview Card */}
+            <div
+                className="flex-1 bg-white dark:bg-[#1d2226] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[350px] flex flex-col"
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+            >
+                {preview ? (
+                    <>
+                        {/* Author header */}
+                        <div className="flex items-start gap-3 p-4 pb-0">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0a66c2] to-[#004182] flex items-center justify-center text-white font-semibold text-lg shrink-0">
+                                Y
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-gray-900 dark:text-white leading-tight">Your Name</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight">Your headline</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight flex items-center gap-1 mt-0.5">
+                                    <span>Just now</span>
+                                    <span>•</span>
+                                    <span>🌐</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Post content */}
+                        <div className="flex-1 px-4 py-3 overflow-y-auto">
+                            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                {formatContent(preview)}
+                            </div>
+                        </div>
+
+                        {/* Image if present */}
+                        {imageUrl && (
+                            <div className="border-t border-gray-100 dark:border-gray-700">
+                                <img
+                                    src={imageUrl}
+                                    alt="Post image"
+                                    className="w-full h-32 object-cover"
+                                />
+                            </div>
+                        )}
+
+                        {/* Engagement bar */}
+                        <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700 mt-auto">
+                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
+                                <span>👍 0</span>
+                                <span>0 comments • 0 reposts</span>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    /* Empty state */
+                    <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                        <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-white/10 dark:to-white/5 rounded-2xl flex items-center justify-center mb-4">
+                            <svg className="w-8 h-8 text-gray-400 dark:text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium mb-2">No preview yet</p>
+                        <p className="text-gray-400 dark:text-gray-500 text-sm max-w-xs">
+                            Click a GitHub activity or use a template to generate your post
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Footer with character count and tips */}
+            {preview && (
+                <div className="mt-4 space-y-3">
+                    {/* Character count */}
+                    <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                            <span className={`font-medium ${isOverLimit ? 'text-red-600' : isNearLimit ? 'text-amber-600' : 'text-gray-600 dark:text-gray-400'
+                                }`}>
+                                {charCount.toLocaleString()} / 3,000 characters
+                            </span>
+                            {isOverLimit && <span className="text-red-600 text-xs">❌ Over limit</span>}
+                            {isNearLimit && !isOverLimit && <span className="text-amber-600 text-xs">⚠️ Near limit</span>}
+                        </div>
+                        <span className="text-gray-400 text-xs">
+                            ~{Math.ceil(charCount / 250)} min read
+                        </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all duration-300 ${isOverLimit ? 'bg-red-500' : isNearLimit ? 'bg-amber-500' : 'bg-[#0a66c2]'
+                                }`}
+                            style={{ width: `${Math.min(100, (charCount / 3000) * 100)}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Tips */}
+            <div className="mt-4 bg-blue-50 dark:bg-blue-900/10 border-l-4 border-[#0a66c2] rounded-r-lg p-3">
+                <div className="flex items-start gap-2">
+                    <span className="text-lg">💡</span>
+                    <div>
+                        <p className="font-medium text-blue-900 dark:text-blue-100 text-sm mb-1">Quick Tips</p>
+                        <ul className="space-y-0.5 text-xs text-blue-700 dark:text-blue-200">
+                            <li>• LinkedIn posts with 1,300-1,600 characters perform best</li>
+                            <li>• Use line breaks to improve readability</li>
+                            <li>• 8-12 relevant hashtags increase visibility</li>
                         </ul>
                     </div>
                 </div>

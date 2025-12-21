@@ -1,297 +1,386 @@
-# LinkedIn Post Bot 🤖
+# LinkedIn Post Bot
 
-An AI-powered LinkedIn content automation platform that transforms your GitHub activity into engaging LinkedIn posts. Available as both a **command-line bot** and a **full-featured web application**.
+> **Transform your GitHub activity into professional LinkedIn content — powered by AI, designed for developers who code more than they post.**
 
-![LinkedIn Post Bot](https://img.shields.io/badge/LinkedIn-Post%20Bot-0A66C2?style=for-the-badge&logo=linkedin)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
-![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge&logo=python)
-![Groq](https://img.shields.io/badge/Groq-AI-orange?style=for-the-badge)
-
-## ✨ Features
-
-### Web Application
-- 🎨 **Modern Dashboard** - Beautiful dark/light mode UI with real-time stats
-- 🤖 **Bot Mode Panel** - Scan GitHub activity, generate AI posts, and publish in one flow
-- � **Custom Day Filters** - Scan GitHub activity from 1-30 days
-- 🎯 **Activity Type Filters** - Filter by Push, PR, Commits, New Repo, or Generic posts
-- 💡 **Smart Suggestions** - Get alternative activities when your preferred type isn't found
-- 🖼️ **Unsplash Integration** - Add beautiful images to your posts
-- 📊 **Analytics** - Track your posting history and engagement
-- � **Multi-tenant Auth** - Per-user credentials with Clerk authentication
-
-### CLI Bot
-- ⚡ **Automated Posting** - Schedule daily posts with cron/Task Scheduler
-- 🧠 **AI Generation** - Groq LLM creates engaging, natural posts
-- 📚 **60-Day Content Library** - Pre-written fallback posts
-- 🔄 **GitHub Activity Sync** - Auto-fetch your coding activity
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/cliff-de-tech/linkedin-post-bot/ci.yml?branch=main&label=build)](https://github.com/cliff-de-tech/linkedin-post-bot/actions)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
 ---
 
-## 🚀 Quick Start
+## Why This Tool Exists
 
-### Option 1: Web Application (Recommended)
+Most developers are active on GitHub but invisible on LinkedIn. Writing engaging posts takes time, and consistency is hard. This tool bridges the gap by:
 
-#### Prerequisites
+- **Scanning your GitHub activity** to find meaningful coding moments
+- **Generating professional posts** using AI (Groq LLM)
+- **Publishing directly to LinkedIn** through official OAuth APIs
+
+It's built for developers who want to grow their professional presence without spending hours crafting content.
+
+---
+
+## What This App Does ✅
+
+| Feature | Description |
+|---------|-------------|
+| **GitHub Activity Scanning** | Fetches your public commits, PRs, pushes, and new repos |
+| **AI Post Generation** | Uses Groq LLM to create natural, engaging LinkedIn content |
+| **OAuth-based LinkedIn Posting** | Publishes via LinkedIn's official API with your authorization |
+| **Web Dashboard** | Modern UI with dark/light mode, stats, and post management |
+| **Multi-User Support** | Per-user credentials with Clerk authentication |
+| **Post Editor** | Manual writing with character counter and preview |
+| **Image Integration** | Optional Unsplash images for visual posts |
+| **CLI Bot Mode** | Standalone script for scheduled, automated posting |
+
+## What This App Does NOT Do ❌
+
+| Not Supported | Why |
+|---------------|-----|
+| Scraping LinkedIn | Violates Terms of Service |
+| Automated credential harvesting | Security and compliance risk |
+| Mass/spam posting | Against LinkedIn's policies |
+| Engagement automation (likes, comments) | Not supported; would violate ToS |
+| Bypassing rate limits | Posts are made through official APIs only |
+| Storing LinkedIn passwords | OAuth tokens only; never raw credentials |
+
+---
+
+## Features vs. Limitations
+
+### ✅ Current Features
+
+- **Dashboard**: Real-time stats, post history, GitHub activity feed
+- **Bot Mode Panel**: One-click workflow: Scan → Generate → Review → Publish
+- **Activity Filters**: Filter by time range (1–30 days) and type (Push, PR, Commits, etc.)
+- **Settings Management**: Individual save buttons per credential, masked secrets
+- **Dark/Light Mode**: Full theme support across all pages
+- **Keyboard Shortcuts**: Ctrl+Enter to publish, Escape to close modals
+- **Post Templates**: Pre-built templates for common post types
+- **Character Counter**: LinkedIn's 3000-character limit enforced
+
+### ⚠️ Known Limitations
+
+- **No scheduled queue** (yet) — posts are published immediately
+- **Single image per post** — LinkedIn API limitation
+- **No LinkedIn analytics** — engagement metrics not fetched from LinkedIn
+- **English-only AI** — generated content is optimized for English
+- **No mobile app** — web-only (responsive design available)
+
+---
+
+## Security & LinkedIn Compliance
+
+This project prioritizes **safety and compliance**:
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Authentication** | OAuth 2.0 via LinkedIn's official flow |
+| **Token Storage** | Encrypted, per-user token store (never shared) |
+| **API Compliance** | Uses only sanctioned LinkedIn APIs (`w_member_social`) |
+| **No Automation Risk** | User initiates all actions; no background scraping |
+| **Credential Masking** | API keys displayed as `gsk_xxxx...xxxx` |
+| **CORS Protection** | Backend only accepts authorized frontend origins |
+| **Clerk Integration** | JWT-verified requests for multi-tenant security |
+
+> **Note**: This tool does NOT use browser automation, headless browsers, or any method that would violate LinkedIn's Terms of Service. All posting is done through LinkedIn's sanctioned Marketing/Share APIs.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS |
+| **Backend** | Python 3.10+, FastAPI, SQLite |
+| **Authentication** | Clerk (frontend), JWT verification (backend) |
+| **AI** | Groq LLM (llama3-70b-8192) |
+| **APIs** | LinkedIn OAuth, GitHub REST API, Unsplash |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CLIENT (Browser)                            │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js @ :3000)                       │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                  │
+│  │   Pages     │  │  Components │  │    Hooks    │                  │
+│  │  Dashboard  │  │  BotMode    │  │  useAuth    │                  │
+│  │  Settings   │  │  PostEditor │  │  useTheme   │                  │
+│  │  Onboarding │  │  Navbar     │  │             │                  │
+│  └─────────────┘  └─────────────┘  └─────────────┘                  │
+│                         │                                            │
+│                    Clerk Auth (JWT)                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                          REST API calls
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    BACKEND (FastAPI @ :8000)                        │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │                      backend/app.py                          │    │
+│  │  /api/github/scan    /api/posts    /api/publish/full        │    │
+│  │  /api/settings       /api/templates                          │    │
+│  │  /auth/linkedin/*    /api/contact                            │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                         │                                            │
+│                    JWT Verification                                  │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      SERVICES LAYER                                  │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐         │
+│  │  ai_service    │  │ linkedin_svc   │  │ github_activity│         │
+│  │  (Groq LLM)    │  │ (OAuth+Post)   │  │ (REST API)     │         │
+│  └────────────────┘  └────────────────┘  └────────────────┘         │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐         │
+│  │ user_settings  │  │  token_store   │  │ image_service  │         │
+│  │ (SQLite)       │  │  (SQLite)      │  │ (Unsplash)     │         │
+│  └────────────────┘  └────────────────┘  └────────────────┘         │
+└─────────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      EXTERNAL SERVICES                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐  │
+│  │  LinkedIn   │  │   GitHub    │  │    Groq     │  │  Unsplash  │  │
+│  │  (OAuth)    │  │   (REST)    │  │   (LLM)     │  │  (Images)  │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Frontend/Backend split** | Clear separation allows independent deployment (Vercel + Railway) |
+| **Services layer** | Business logic isolated from API routes; reusable by CLI bot |
+| **Per-user credentials** | Multi-tenant by design; users bring their own API keys |
+| **SQLite storage** | Simple, file-based; no external database dependency |
+| **Clerk for auth** | Handles JWT, sessions, and user management out of the box |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
 - Node.js 18+
 - Python 3.10+
-- Clerk account (free tier available)
+- Clerk account ([clerk.com](https://clerk.com))
+- LinkedIn Developer App ([developers.linkedin.com](https://www.linkedin.com/developers))
+- Groq API key ([console.groq.com](https://console.groq.com))
 
-#### 1. Clone & Install
+### Installation
 
 ```bash
+# Clone repository
 git clone https://github.com/cliff-de-tech/linkedin-post-bot.git
 cd linkedin-post-bot
 
-# Install Python dependencies
+# Backend setup
 pip install -r requirements.txt
+cp .env.example .env  # Configure your API keys
 
-# Install frontend dependencies
+# Frontend setup
 cd web
 npm install
+cp .env.local.example .env.local  # Configure Clerk keys
 ```
 
-#### 2. Configure Environment Variables
+### Running Locally
 
-**Backend `.env`:**
 ```bash
-cp .env.example .env
+# Terminal 1: Start backend
+cd backend && python app.py
+
+# Terminal 2: Start frontend
+cd web && npm run dev
 ```
 
-Edit `.env`:
-```env
-# LinkedIn OAuth (get from LinkedIn Developers Portal)
-LINKEDIN_CLIENT_ID=your_client_id
-LINKEDIN_CLIENT_SECRET=your_client_secret
-
-# AI Generation (get from console.groq.com)
-GROQ_API_KEY=your_groq_api_key
-
-# GitHub (your username)
-GITHUB_USERNAME=your_github_username
-
-# Optional: Images
-UNSPLASH_ACCESS_KEY=your_unsplash_key
-
-# Clerk Auth (for multi-user support)
-CLERK_ISSUER=https://your-clerk-instance.clerk.accounts.dev
-```
-
-**Frontend `web/.env.local`:**
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_key
-CLERK_SECRET_KEY=sk_test_your_key
-```
-
-#### 3. Start the Application
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
-py app.py
-# or: python app.py
-```
-
-**Terminal 2 - Frontend:**
-```bash
-cd web
-npm run dev
-```
-
-#### 4. Open in Browser
-Visit `http://localhost:3000` and complete the onboarding flow!
+Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
 
 ---
 
-### Option 2: CLI Bot (Standalone)
-
-For automated daily posting without the web UI:
-
-```bash
-# 1. Configure credentials in bot.py or .env
-# 2. Run authentication
-python auth.py
-
-# 3. Run the bot
-python bot.py
-
-# 4. Schedule (optional)
-# Windows: schtasks /create /tn "LinkedInBot" /tr "python bot.py" /sc daily /st 09:00
-# Linux/Mac: crontab -e → 0 9 * * * /usr/bin/python3 /path/to/bot.py
-```
-
----
-
-## 🔑 Getting API Keys
-
-### LinkedIn Developer App
-1. Go to [LinkedIn Developers](https://www.linkedin.com/developers)
-2. Create new app → Set redirect URL: `http://localhost:8000/auth/linkedin/callback`
-3. Request these OAuth scopes: `openid`, `profile`, `email`, `w_member_social`
-4. Copy **Client ID** and **Client Secret**
-
-### Groq AI Key
-1. Visit [console.groq.com](https://console.groq.com)
-2. Create account → API Keys → Generate new key
-3. Free tier includes generous rate limits
-
-### Unsplash (Optional)
-1. Visit [unsplash.com/developers](https://unsplash.com/developers)
-2. Create app → Copy **Access Key**
-
-### Clerk Authentication
-1. Visit [clerk.com](https://clerk.com)
-2. Create application → Copy **Publishable Key** and **Secret Key**
-3. Set Frontend API URL in Clerk dashboard
-
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 linkedin-post-bot/
 ├── web/                    # Next.js Frontend
-│   ├── src/
-│   │   ├── pages/          # Routes (dashboard, settings, onboarding)
-│   │   ├── components/     # UI Components
-│   │   └── lib/            # Utilities & API clients
-│   └── public/             # Static assets
+│   ├── src/pages/          # Dashboard, Settings, Onboarding
+│   ├── src/components/     # UI Components
+│   └── src/hooks/          # Custom React hooks
 ├── backend/                # FastAPI Backend
-│   ├── app.py              # Main API server
+│   ├── app.py              # API server
 │   └── middleware/         # Auth middleware
-├── services/               # Core Services
+├── services/               # Core Business Logic
 │   ├── ai_service.py       # Groq AI integration
-│   ├── github_activity.py  # GitHub API
+│   ├── github_activity.py  # GitHub API client
 │   ├── linkedin_service.py # LinkedIn posting
-│   ├── image_service.py    # Unsplash images
-│   ├── user_settings.py    # Settings storage
-│   └── token_store.py      # OAuth token management
+│   └── user_settings.py    # Settings storage
 ├── bot.py                  # Standalone CLI bot
-├── auth.py                 # OAuth helper
-└── .env.example            # Environment template
+└── auth.py                 # OAuth helper
 ```
 
 ---
 
-## 🖥️ Using the Web App
+## Roadmap
 
-### Dashboard Overview
-- **Stats Overview** - Posts generated, published, drafts count
-- **Bot Mode Panel** - Main workflow for generating posts
-- **GitHub Activity Feed** - See your recent coding activity
-- **Post Editor** - Manually create posts with custom context
+### 🎯 Short Term (Next 2–4 weeks)
+- [ ] Scheduled posting queue (time-delayed publishing)
+- [ ] Post drafts with save/restore
+- [ ] Export post history to CSV
 
-### Bot Mode Workflow
-1. **Select Time Range** - Choose 1, 3, 7, 14, or 30 days
-2. **Filter Activity Type** - All, Push, PR, Commits, New Repo, Generic
-3. **Scan GitHub** - Fetches your recent activity
-4. **Generate Posts** - AI creates LinkedIn-optimized content
-5. **Review & Edit** - Modify posts before publishing
-6. **Add Images** - Optional Unsplash image selection
-7. **Publish** - Post to LinkedIn (supports test mode)
+### 🚀 Mid Term (1–3 months)
+- [ ] Multi-account support (multiple LinkedIn profiles)
+- [ ] AI persona customization (tone, style, hashtags)
+- [ ] Docker deployment package
+- [ ] Basic engagement analytics (post performance)
 
-### Settings Page
-- Save credentials individually with dedicated Save buttons
-- Connect LinkedIn via OAuth
-- View saved credentials (masked for security)
-- Buttons show "✓ Saved" when credentials are stored
+### 🌟 Long Term (3–6 months)
+- [ ] Mobile companion app (React Native)
+- [ ] Team/agency mode (manage multiple clients)
+- [ ] Content calendar view
+- [ ] LinkedIn analytics integration (if API permits)
 
 ---
 
-## 🛠️ Development
+## 🌐 Live Demo
 
-### Run in Development Mode
+> **Demo Coming Soon** — check back for a live preview of the dashboard.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/cliff-de-tech/linkedin-post-bot&project-name=linkedin-post-bot&root-directory=web)
+
+---
+
+## Deployment
+
+### Frontend Deployment (Vercel)
+
+1. **Connect Repository**
+   - Go to [vercel.com](https://vercel.com) and import your GitHub repo
+   - Set root directory to `web`
+
+2. **Configure Environment Variables**
+   ```
+   NEXT_PUBLIC_API_URL=https://your-backend-url.onrender.com
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxx
+   CLERK_SECRET_KEY=sk_live_xxx
+   NEXT_PUBLIC_REDIRECT_URI=https://your-frontend.vercel.app/auth/callback
+   ```
+
+3. **Deploy**
+   - Vercel will auto-build with `npm run build`
+   - Production URL: `https://your-app.vercel.app`
+
+### Backend Deployment (Render)
+
+1. **Create New Web Service**
+   - Go to [render.com](https://render.com) and create a new Web Service
+   - Connect your GitHub repo
+
+2. **Configure Build**
+   ```yaml
+   Root Directory: backend
+   Build Command: pip install -r requirements.txt
+   Start Command: uvicorn app:app --host 0.0.0.0 --port $PORT
+   ```
+
+3. **Environment Variables**
+   ```
+   LINKEDIN_CLIENT_ID=your_linkedin_client_id
+   LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret
+   GROQ_API_KEY=gsk_your_groq_key
+   GITHUB_USERNAME=your_github_username
+   CLERK_ISSUER=https://your-clerk-instance.clerk.accounts.dev
+   TOKEN_DB_PATH=/opt/render/project/src/backend_tokens.db
+   USER_SETTINGS_DB_PATH=/opt/render/project/src/user_settings.db
+   ```
+
+4. **Deploy**
+   - Render auto-deploys on push to main
+   - Backend URL: `https://your-app.onrender.com`
+
+### Alternative: Railway Deployment
+
 ```bash
-# Backend with auto-reload
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login and deploy
+railway login
+cd backend && railway up
+cd ../web && railway up
+```
+
+### Docker Deployment (Coming Soon)
+
+```dockerfile
+# Dockerfile for backend (backend/Dockerfile)
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+---
+
+## Development
+
+```bash
+# Run with hot-reload
 cd backend && uvicorn app:app --reload --port 8000
-
-# Frontend with hot-reload
 cd web && npm run dev
-```
 
-### Build for Production
-```bash
-cd web
-npm run build
-npm run start
-```
+# Run tests
+cd backend && pytest tests/ -v
+cd web && npm test
 
-### Lint & Type Check
-```bash
-cd web
-npm run lint
-npm run build  # TypeScript check
+# Lint & type check
+cd web && npm run lint && npm run build
 ```
 
 ---
 
-## 🔒 Security Features
-
-- **Per-user credentials** - Each user stores their own API keys
-- **Masked secrets** - API keys shown as `gsk_xxxx...xxxx` in UI
-- **Clerk JWT verification** - Secure API endpoints
-- **CORS protection** - API only accepts authorized origins
-- **Environment variables** - Never commit secrets to git
-
----
-
-## 🌐 Deployment
-
-### Vercel (Frontend)
-```bash
-cd web
-npx vercel --prod
-```
-
-### Railway/Render (Backend)
-Deploy `backend/` with Python runtime, set environment variables.
-
-### Docker (Coming Soon)
-```bash
-docker-compose up -d
-```
-
----
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| "No GitHub activity found" | Check GITHUB_USERNAME, extend day range |
-| LinkedIn auth fails | Verify Client ID/Secret, check redirect URL |
-| AI posts are empty | Check GROQ_API_KEY is valid |
-| Credentials not saving | Restart backend, check console for errors |
-| "Invalid token" error | Re-authenticate with LinkedIn |
+| "No GitHub activity found" | Verify `GITHUB_USERNAME`, extend day range |
+| LinkedIn auth fails | Check Client ID/Secret and redirect URL |
+| AI posts are empty | Verify `GROQ_API_KEY` is valid |
+| "Invalid token" | Re-authenticate with LinkedIn |
+| Credentials not saving | Restart backend, check console logs |
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] Scheduled posting (queue posts for specific times)
-- [ ] Multi-account support
-- [ ] Analytics dashboard with engagement metrics
-- [ ] AI persona customization
-- [ ] Docker deployment package
-- [ ] Mobile app (React Native)
-
----
-
-## 📄 License
-
-MIT License - Use freely for personal and commercial projects.
-
----
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -m 'Add your feature'`
+4. Push to branch: `git push origin feature/your-feature`
 5. Open a Pull Request
 
 ---
 
-**Made with ❤️ by [cliff-de-tech](https://github.com/cliff-de-tech)**
+## License
 
-Happy posting! 🚀
+MIT License — free for personal and commercial use.
+
+---
+
+**Built by [cliff-de-tech](https://github.com/cliff-de-tech)** | Happy posting! 🚀

@@ -53,6 +53,14 @@ const ACTIVITY_TYPES = [
     { value: 'generic', label: 'Generic Post', icon: '📄' }
 ];
 
+// Template options
+const TEMPLATE_OPTIONS = [
+    { value: 'standard', label: 'Standard Update', icon: '📝' },
+    { value: 'build_in_public', label: 'Build in Public', icon: '🔨' },
+    { value: 'thought_leadership', label: 'Thought Leadership', icon: '💡' },
+    { value: 'job_search', label: 'Job Search / Portfolio', icon: '💼' }
+];
+
 const DAY_OPTIONS = [1, 3, 7, 14, 30];
 
 export function BotModePanel({ userId }: BotModePanelProps) {
@@ -64,6 +72,7 @@ export function BotModePanel({ userId }: BotModePanelProps) {
     // Filter states
     const [searchDays, setSearchDays] = useState(3);
     const [activityType, setActivityType] = useState('all');
+    const [selectedTemplate, setSelectedTemplate] = useState('standard');
     const [suggestedActivities, setSuggestedActivities] = useState<Activity[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -142,7 +151,8 @@ export function BotModePanel({ userId }: BotModePanelProps) {
         try {
             const response = await axios.post(`${API_BASE}/api/post/generate-batch`, {
                 user_id: userId,
-                activities: toGenerate
+                activities: toGenerate,
+                style: selectedTemplate
             });
 
             showToast.dismiss(toastId);
@@ -333,13 +343,13 @@ export function BotModePanel({ userId }: BotModePanelProps) {
 
                     {/* Filter Controls */}
                     <div className="flex flex-wrap justify-center gap-4 mb-6">
-                        {/* Day Selector */}
+                        {/* Time Range */}
                         <div className="flex flex-col items-start">
                             <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-1">Time Range</label>
                             <select
                                 value={searchDays}
                                 onChange={(e) => setSearchDays(Number(e.target.value))}
-                                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
+                                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                             >
                                 {DAY_OPTIONS.map(days => (
                                     <option key={days} value={days}>
@@ -349,17 +359,33 @@ export function BotModePanel({ userId }: BotModePanelProps) {
                             </select>
                         </div>
 
-                        {/* Activity Type Selector */}
+                        {/* Activity Type */}
                         <div className="flex flex-col items-start">
                             <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 ml-1">Activity Type</label>
                             <select
                                 value={activityType}
                                 onChange={(e) => setActivityType(e.target.value)}
-                                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[180px]"
+                                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 min-w-[180px]"
                             >
                                 {ACTIVITY_TYPES.map(type => (
                                     <option key={type.value} value={type.value}>
                                         {type.icon} {type.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Post Template */}
+                        <div className="flex flex-col items-start">
+                            <label className="text-xs text-blue-600 dark:text-blue-400 mb-1 ml-1 font-medium">Post Style</label>
+                            <select
+                                value={selectedTemplate}
+                                onChange={(e) => setSelectedTemplate(e.target.value)}
+                                className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-300 dark:border-blue-700 rounded-xl text-blue-700 dark:text-blue-300 focus:ring-2 focus:ring-blue-500 min-w-[200px] font-medium"
+                            >
+                                {TEMPLATE_OPTIONS.map(template => (
+                                    <option key={template.value} value={template.value}>
+                                        {template.icon} {template.label}
                                     </option>
                                 ))}
                             </select>
@@ -412,55 +438,40 @@ export function BotModePanel({ userId }: BotModePanelProps) {
                                 ) : (
                                     <>
                                         <span>✨</span>
-                                        Generate All Posts
+                                        Generate All ({selectedTemplate.replace(/_/g, ' ')})
                                     </>
                                 )}
                             </button>
                         </div>
                     </div>
 
-                    {/* Suggestions Banner */}
                     {showSuggestions && (
-                        <div className="mb-4 p-4 bg-orange-100 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-xl">
-                            <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
-                                <span className="text-xl">💡</span>
-                                <div>
-                                    <p className="font-medium">
-                                        No {ACTIVITY_TYPES.find(t => t.value === activityType)?.label} found
-                                    </p>
-                                    <p className="text-sm opacity-80">
-                                        Here are other activities from the last {searchDays} day{searchDays > 1 ? 's' : ''} you can use instead:
-                                    </p>
-                                </div>
-                            </div>
+                        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
+                            💡 No {activityType} activities found. Showing other recent activities instead.
                         </div>
                     )}
 
-                    {/* Activity list */}
-                    <div className="grid gap-3">
-                        {(showSuggestions ? suggestedActivities : activities).length === 0 && !showSuggestions ? (
-                            <NoActivitiesState onRefresh={() => handleScanGitHub()} />
-                        ) : (
-                            (showSuggestions ? suggestedActivities : activities).map((activity) => (
-                                <div
-                                    key={activity.id}
-                                    className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md transition-all duration-200 cursor-pointer btn-press"
-                                >
-                                    <span className="text-2xl">{activity.icon}</span>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-medium text-gray-900 dark:text-white truncate">
-                                            {activity.title}
-                                        </h4>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {activity.time_ago} • {activity.repo}
-                                        </p>
-                                    </div>
-                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
-                                        {activity.type}
-                                    </span>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                        {(showSuggestions ? suggestedActivities : activities).map(activity => (
+                            <div
+                                key={activity.id}
+                                className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer transition-colors"
+                                onClick={() => handleGeneratePosts([activity])}
+                            >
+                                <span className="text-2xl">{activity.icon}</span>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                                        {activity.title}
+                                    </h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {activity.time_ago} • {activity.repo}
+                                    </p>
                                 </div>
-                            ))
-                        )}
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
+                                    {activity.type}
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

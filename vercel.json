@@ -1,0 +1,24 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "web/package.json",
+            "use": "@vercel/next"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "/web/$1"
+        }
+    ],
+    "env": {
+        "NEXT_PUBLIC_API_URL": "@linkedin_bot_api_url",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "@clerk_publishable_key"
+    },
+    "framework": "nextjs",
+    "installCommand": "cd web && npm install",
+    "buildCommand": "cd web && npm run build",
+    "devCommand": "cd web && npm run dev",
+    "outputDirectory": "web/.next"
+}

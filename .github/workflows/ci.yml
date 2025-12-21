@@ -1,0 +1,145 @@
+# LinkedIn Post Bot - CI/CD Pipeline
+
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ============================================
+  # Backend Tests (Python/FastAPI)
+  # ============================================
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run backend tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+        env:
+          # Provide minimal env vars for tests
+          LINKEDIN_CLIENT_ID: test_client_id
+          LINKEDIN_CLIENT_SECRET: test_client_secret
+          GROQ_API_KEY: test_groq_key
+
+  # ============================================
+  # Frontend Tests (Next.js/React)
+  # ============================================
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+  # ============================================
+  # Frontend Build Check
+  # ============================================
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          # Required for build but not for functionality
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+
+  # ============================================
+  # Python Linting
+  # ============================================
+  python-lint:
+    name: Python Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort
+
+      - name: Check formatting with Black
+        run: |
+          black --check --diff backend/ services/ || echo "::warning::Black formatting issues found"
+        continue-on-error: true
+
+      - name: Check imports with isort
+        run: |
+          isort --check-only --diff backend/ services/ || echo "::warning::Import ordering issues found"
+        continue-on-error: true
+
+      - name: Lint with flake8
+        run: |
+          flake8 backend/ services/ --max-line-length=120 --ignore=E501,W503 --count --show-source --statistics || echo "::warning::Flake8 issues found"
+        continue-on-error: true

@@ -26,24 +26,64 @@ except ImportError:
 try:
     # Import core functions from the refactored services
     from services.ai_service import generate_post_with_ai
+except ImportError:
+    generate_post_with_ai = None
+
+# Import GitHub service
+try:
+    from services.github_activity import get_user_activity
+except ImportError:
+    get_user_activity = None
+
+# Import Unsplash service (if available in utils or services)
+try:
     from services.image_service import get_relevant_image
-    from services.linkedin_service import upload_image_to_linkedin, post_to_linkedin
-    from services.token_store import get_all_tokens, init_db, get_token_by_user_id
+except ImportError:
+    # Basic fallback
+    get_relevant_image = None
+
+# Import LinkedIn service
+try:
+    from services.linkedin_service import post_to_linkedin, upload_image_to_linkedin
+except ImportError:
+    post_to_linkedin = None
+    upload_image_to_linkedin = None
+
+# Import User Settings service
+try:
+    from services.user_settings import get_user_settings, get_token_by_user_id
+except ImportError:
+    get_user_settings = None
+    get_token_by_user_id = None
+
+# Import Post History service
+try:
+    from services.post_history import save_post, get_user_posts, get_user_stats
+except ImportError:
+    save_post = None
+    get_user_posts = None
+    get_user_stats = None
+
+try:
+    # Import core functions from the refactored services
+    # from services.ai_service import generate_post_with_ai # Already imported above
+    # from services.image_service import get_relevant_image # Already imported above
+    # from services.linkedin_service import upload_image_to_linkedin, post_to_linkedin # Already imported above
+    from services.token_store import get_all_tokens, init_db
     from services.auth_service import (
-        get_access_token_for_urn, 
-        get_authorize_url, 
+        get_access_token_for_urn,
+        get_authorize_url,
         exchange_code_for_token,
         get_authorize_url_for_user,
         exchange_code_for_token_with_user
     )
-    from services.user_settings import init_db as init_settings_db, save_user_settings, get_user_settings
+    from services.user_settings import init_db as init_settings_db, save_user_settings # get_user_settings already imported
     from services.post_history import (
         init_db as init_post_history_db,
-        save_post,
-        get_user_posts,
+        # save_post, # Already imported above
+        # get_user_posts, # Already imported above
         update_post_status,
-        delete_post,
-        get_user_stats
+        delete_post
     )
     from services.github_activity import get_user_activity, get_repo_details
     from services.email_service import email_service
@@ -76,6 +116,26 @@ except Exception:
     get_user_activity = None
     get_repo_details = None
     email_service = None
+
+# =============================================================================
+# RATE LIMITING
+# =============================================================================
+# Import rate limiters to prevent API abuse
+# See services/middleware.py for configuration
+try:
+    from services.middleware import (
+        post_generation_limiter,
+        publish_limiter,
+        api_limiter,
+        RateLimitExceededError
+    )
+    RATE_LIMITING_ENABLED = True
+except ImportError:
+    RATE_LIMITING_ENABLED = False
+    post_generation_limiter = None
+    publish_limiter = None
+    api_limiter = None
+    RateLimitExceededError = Exception
 
 app = FastAPI(title="LinkedIn Post Bot API")
 
@@ -120,6 +180,10 @@ async def generate_preview(
     req: GenerateRequest,
     current_user: dict = Depends(get_current_user) if get_current_user else None
 ):
+    """Generate an AI post preview from context.
+    
+    Rate limited to 10 requests per hour per user to prevent abuse.
+    """
     if not generate_post_with_ai:
         return {"error": "generate_post_with_ai not available (import failed)"}
     
@@ -130,6 +194,17 @@ async def generate_preview(
     elif req.user_id:
         user_id = req.user_id
     
+    # Rate limiting check (10 requests/hour for AI generation)
+    if RATE_LIMITING_ENABLED and post_generation_limiter and user_id:
+        if not post_generation_limiter.is_allowed(user_id):
+            remaining = post_generation_limiter.get_remaining(user_id)
+            reset_time = post_generation_limiter.get_reset_time(user_id)
+            return {
+                "error": "Rate limit exceeded for post generation",
+                "remaining": remaining,
+                "reset_in_seconds": int(reset_time) if reset_time else None
+            }
+    
     # Get user's Groq API key if user_id available
     groq_api_key = None
     if user_id and get_user_settings:
@@ -138,7 +213,8 @@ async def generate_preview(
             if settings:
                 groq_api_key = settings.get('groq_api_key')
         except Exception as e:
-            print(f"Failed to get user settings for Groq key: {e}")
+            # SECURITY: Don't log the actual key, just the error type
+            print(f"Failed to get user settings: {type(e).__name__}")
     
     post = generate_post_with_ai(req.context, groq_api_key=groq_api_key)
     return {"post": post}
@@ -371,6 +447,9 @@ def get_settings(user_id: str):
                 "has_linkedin": bool(linkedin_id),
                 "has_groq": bool(groq_key),
                 "has_unsplash": bool(unsplash_key),
+                "subscription_tier": settings.get("subscription_tier") or "free",
+                "subscription_status": settings.get("subscription_status") or "active",
+                "subscription_expires_at": settings.get("subscription_expires_at"),
             }
         return {"error": "User not found"}
     except Exception as e:
@@ -418,27 +497,12 @@ def get_posts(user_id: str, limit: int = 50, status: str = None):
 class SavePostRequest(BaseModel):
     user_id: str
     post_content: str
-    post_type: str
-    context: dict
-    status: str = "draft"
+    post_type: Optional[str] = "mixed"
+    context: Optional[dict] = {}
+    status: Optional[str] = "draft"
+    linkedin_post_id: Optional[str] = None
 
 
-@app.post("/api/posts")
-def create_post(request: SavePostRequest):
-    """Save a post to history"""
-    if not save_post:
-        return {"error": "Post history service not available"}
-    try:
-        post_id = save_post(
-            request.user_id,
-            request.post_content,
-            request.post_type,
-            request.context,
-            request.status
-        )
-        return {"post_id": post_id, "status": "success"}
-    except Exception as e:
-        return {"error": str(e)}
 
 
 @app.delete("/api/posts/{post_id}")
@@ -568,6 +632,7 @@ class ScanRequest(BaseModel):
 class BatchGenerateRequest(BaseModel):
     user_id: str
     activities: list
+    style: Optional[str] = "standard"
 
 class ImagePreviewRequest(BaseModel):
     post_content: str
@@ -673,7 +738,7 @@ async def generate_batch_posts(req: BatchGenerateRequest):
             context = activity.get('context', activity)
             
             # Generate the post
-            post_content = generate_post_with_ai(context, groq_api_key=groq_api_key)
+            post_content = generate_post_with_ai(context, groq_api_key=groq_api_key, style=req.style)
             
             if post_content:
                 generated_posts.append({
@@ -764,11 +829,33 @@ async def get_image_options(req: ImagePreviewRequest):
 
 @app.post("/api/publish/full")
 async def publish_full(req: FullPublishRequest):
-    """Publish a post to LinkedIn with optional image (full bot functionality)"""
+    """Publish a post to LinkedIn with optional image (full bot functionality).
+    
+    Rate limited to 5 posts per hour per user to prevent spam.
+    
+    SECURITY & COMPLIANCE NOTES:
+    - Uses official LinkedIn UGC Posts API
+    - Requires user's explicit action (not automated)
+    - Rate limiting prevents abuse
+    - Test mode available for preview without posting
+    """
     if not post_to_linkedin:
         return {"error": "LinkedIn service not available"}
     
-    # Test mode - just return preview
+    # Rate limiting check (5 posts/hour - stricter for actual publishing)
+    # This helps prevent spam and protects against LinkedIn rate limiting
+    if RATE_LIMITING_ENABLED and publish_limiter and req.user_id and not req.test_mode:
+        if not publish_limiter.is_allowed(req.user_id):
+            remaining = publish_limiter.get_remaining(req.user_id)
+            reset_time = publish_limiter.get_reset_time(req.user_id)
+            return {
+                "error": "Rate limit exceeded for publishing",
+                "message": "To prevent spam, you can only publish 5 posts per hour. Please try again later.",
+                "remaining": remaining,
+                "reset_in_seconds": int(reset_time) if reset_time else None
+            }
+    
+    # Test mode - just return preview (not rate limited)
     if req.test_mode:
         return {
             "success": True,
@@ -843,6 +930,40 @@ async def publish_full(req: FullPublishRequest):
         }
     except Exception as e:
         return {"error": str(e), "success": False}
+
+
+@app.post("/api/posts")
+def api_save_post(req: SavePostRequest):
+    """Save a post to history (draft or published)"""
+    if not save_post:
+        return {"error": "History service not available"}
+    
+    try:
+        post_id = save_post(
+            user_id=req.user_id,
+            post_content=req.post_content,
+            post_type=req.post_type,
+            context=req.context,
+            status=req.status,
+            linkedin_post_id=req.linkedin_post_id
+        )
+        return {"success": True, "post_id": post_id}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+@app.get("/api/stats/{user_id}")
+def get_stats(user_id: str):
+    """Get user content analytics"""
+    if not get_user_stats:
+        return {"error": "Stats service not available"}
+    
+    try:
+        stats = get_user_stats(user_id)
+        return {"success": True, "stats": stats}
+    except Exception as e:
+        print(f"Error fetching stats: {e}")
+        return {"error": str(e)}
 
 
 # ============================================
