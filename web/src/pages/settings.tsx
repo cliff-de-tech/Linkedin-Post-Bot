@@ -1,3 +1,9 @@
+/**
+ * Settings Page - User configuration for LinkedIn, Groq, GitHub, and Unsplash
+ * 
+ * API TYPES: Uses types from @/types/dashboard (generated from shared/contracts)
+ * TO REGENERATE when backend changes: npm run generate:types
+ */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
@@ -610,8 +616,8 @@ export default function Settings() {
                   onClick={() => handleSaveField('unsplash_access_key')}
                   disabled={!formData.unsplash_access_key || savingField === 'unsplash_access_key'}
                   className={`mt-3 px-4 py-2 text-white text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 ${savedFields.unsplash_access_key
-                      ? 'bg-gray-500 hover:bg-gray-600'
-                      : 'bg-orange-500 hover:bg-orange-600'
+                    ? 'bg-gray-500 hover:bg-gray-600'
+                    : 'bg-orange-500 hover:bg-orange-600'
                     } disabled:bg-gray-600 disabled:cursor-not-allowed`}
                 >
                   {savingField === 'unsplash_access_key' ? (

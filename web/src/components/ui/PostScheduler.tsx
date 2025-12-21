@@ -1,7 +1,14 @@
+/**
+ * Post Scheduler - Schedule LinkedIn posts for later publishing
+ * 
+ * API TYPES: Uses types from @/types/dashboard (generated from shared/contracts)
+ * TO REGENERATE when backend changes: npm run generate:types
+ */
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { showToast } from '@/lib/toast';
 import { CompactCharCounter } from './CharacterCounter';
+import type { SchedulePostRequest } from '@/types/dashboard';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -22,6 +29,7 @@ interface PostSchedulerProps {
     onScheduled?: () => void;
     onClose?: () => void;
 }
+
 
 export function PostScheduler({
     userId,
@@ -218,10 +226,10 @@ export function ScheduledPostsList({ userId }: ScheduledPostsListProps) {
                 <div
                     key={post.id}
                     className={`p-4 rounded-xl border ${post.status === 'published'
-                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                            : post.status === 'failed'
-                                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : post.status === 'failed'
+                            ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                         }`}
                 >
                     <div className="flex items-start justify-between gap-3">

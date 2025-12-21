@@ -1,22 +1,31 @@
+/**
+ * Bot Mode Panel - Automated LinkedIn post generation from GitHub activity
+ * 
+ * API TYPES: This component uses types from shared/contracts.
+ * TO REGENERATE when backend changes: npm run generate:types
+ */
 import { useState, useCallback } from 'react';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { showToast } from '@/lib/toast';
 import { PostQueuePanel } from './PostQueuePanel';
 import { ImageSelector } from './ImageSelector';
 import { ActivitySkeleton } from '@/components/ui/Skeleton';
 import { NoActivitiesState } from '@/components/ui/EmptyState';
 
+// Import API types from shared contracts
+import type {
+    ScanRequest,
+    BatchGenerateRequest,
+    FullPublishRequest,
+    ImagePreviewRequest,
+    GitHubActivity
+} from '@/types/dashboard';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface Activity {
-    id: string;
-    type: string;
-    icon: string;
-    title: string;
-    description: string;
-    time_ago: string;
-    context: Record<string, unknown>;
-    repo: string;
+// Local UI-specific types that extend or complement API types
+interface Activity extends GitHubActivity {
+    // Additional UI-specific properties can be added here
 }
 
 interface Post {
@@ -30,7 +39,7 @@ interface Post {
     error?: string;
 }
 
-interface Image {
+interface UnsplashImage {
     id: string;
     url: string;
     thumb: string;
@@ -42,6 +51,7 @@ interface Image {
 interface BotModePanelProps {
     userId: string;
 }
+
 
 // Activity type options
 const ACTIVITY_TYPES = [
@@ -67,7 +77,7 @@ export function BotModePanel({ userId }: BotModePanelProps) {
     // State
     const [activities, setActivities] = useState<Activity[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
-    const [images, setImages] = useState<Image[]>([]);
+    const [images, setImages] = useState<UnsplashImage[]>([]);
 
     // Filter states
     const [searchDays, setSearchDays] = useState(3);
