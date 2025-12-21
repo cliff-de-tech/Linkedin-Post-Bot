@@ -35,7 +35,8 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600 dark:text-gray-300">
             <a href="#features" className="hover:text-blue-600 dark:hover:text-white transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-blue-600 dark:hover:text-white transition-colors">How it works</a>
-            <a href="#testimonials" className="hover:text-blue-600 dark:hover:text-white transition-colors">Testimonials</a>
+            <a href="#pricing" className="hover:text-blue-600 dark:hover:text-white transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-blue-600 dark:hover:text-white transition-colors">FAQ</a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -52,7 +53,7 @@ export default function Home() {
                 onClick={() => router.push('/sign-up')}
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 transition-all hover:scale-105"
               >
-                Get Started Free
+                Get Started For Free
               </button>
             </SignedOut>
 
@@ -102,7 +103,7 @@ export default function Home() {
               onClick={() => router.push(isSignedIn ? '/dashboard' : '/sign-up')}
               className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-blue-500/25 hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
             >
-              start generating free
+              start generating for free
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -262,7 +263,456 @@ export default function Home() {
           </div>
         </div>
 
+        {/* BEFORE/AFTER TRANSFORMATION SECTION */}
+
+        <div className="max-w-7xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-300 text-sm font-medium mb-4">
+              See The Magic
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">From Commit to Content</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              Watch your code activity transform into engaging LinkedIn posts.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Before: GitHub Commit */}
+            <div className="relative">
+              <div className="absolute -top-3 left-4 px-3 py-1 bg-gray-800 text-white text-xs font-bold rounded-full z-10">
+                BEFORE
+              </div>
+              <div className="bg-gray-900 rounded-2xl p-6 border border-gray-700 shadow-2xl">
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-700">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm">✓</div>
+                  <div>
+                    <div className="text-green-400 font-mono text-sm">feat: Add user authentication</div>
+                    <div className="text-gray-500 text-xs">cliff-de-tech/my-saas-app</div>
+                  </div>
+                </div>
+                <div className="font-mono text-sm">
+                  <div className="text-gray-400 mb-2">{"// 3 files changed, 247 insertions"}</div>
+                  <div className="text-green-400">{"+ import { ClerkProvider } from '@clerk/nextjs';"}</div>
+                  <div className="text-green-400">{"+ export const authMiddleware = ..."}</div>
+                  <div className="text-red-400">{"- // TODO: Add authentication"}</div>
+                  <div className="text-gray-600 mt-2">...</div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Arrow */}
+            <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 z-20">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </div>
+            </div>
+
+            {/* After: LinkedIn Post */}
+            <div className="relative">
+              <div className="absolute -top-3 left-4 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full z-10">
+                AFTER
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">CD</div>
+                  <div>
+                    <div className="font-bold text-gray-900 dark:text-white">Cliff De-Tech</div>
+                    <div className="text-gray-500 text-sm">Full Stack Developer • 2h</div>
+                  </div>
+                </div>
+                <p className="text-gray-800 dark:text-gray-200 mb-4 leading-relaxed">
+                  🔐 Just shipped user authentication for my SaaS project!
+                  <br /><br />
+                  Using Clerk for a seamless auth experience. The developer experience is incredible - had it running in under an hour.
+                  <br /><br />
+                  Key features:<br />
+                  ✅ OAuth providers (Google, GitHub)<br />
+                  ✅ Magic link sign-in<br />
+                  ✅ Protected routes middleware
+                  <br /><br />
+                  Building in public is the best accountability. What auth solution do you use?
+                  <br /><br />
+                  #BuildInPublic #WebDev #SaaS #Authentication
+                </p>
+                <div className="flex items-center gap-6 text-gray-500 text-sm pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <span>👍 127</span>
+                  <span>💬 23 comments</span>
+                  <span>🔄 8 reposts</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* VIDEO DEMO SECTION */}
+        <div className="max-w-5xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 text-sm font-medium mb-4">
+              Watch It In Action
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">See PostBot Work Its Magic</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              A 2-minute walkthrough of the complete workflow.
+            </p>
+          </div>
+
+          {/* Video Placeholder */}
+          <div className="relative aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl overflow-hidden shadow-2xl border border-gray-700 group cursor-pointer hover:border-blue-500/50 transition-all">
+            {/* Fake video thumbnail */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Play button */}
+              <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+                <svg className="w-8 h-8 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+            {/* Video timeline decoration */}
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">CD</div>
+                <div className="flex-1">
+                  <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full w-1/3 bg-blue-500 rounded-full"></div>
+                  </div>
+                </div>
+                <span className="text-white/70 text-sm font-mono">0:45 / 2:12</span>
+              </div>
+            </div>
+            {/* Coming soon overlay */}
+            <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur text-white text-xs font-medium rounded-full">
+              Demo Coming Soon
+            </div>
+          </div>
+        </div>
+
+        {/* HOW IT WORKS SECTION */}
+
+        <div id="how-it-works" className="max-w-7xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 text-sm font-medium mb-4">
+              Simple 3-Step Process
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">How It Works</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+              From code to content in minutes, not hours.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 relative">
+            {/* Connector line (desktop only) */}
+            <div className="hidden md:block absolute top-16 left-1/6 right-1/6 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+
+            {[
+              {
+                step: '01',
+                title: 'Connect Your GitHub',
+                desc: 'Link your GitHub account and we\'ll automatically scan your recent commits, PRs, and repository updates.',
+                icon: '🔗'
+              },
+              {
+                step: '02',
+                title: 'AI Generates Posts',
+                desc: 'Our AI analyzes your activity and crafts engaging LinkedIn posts that showcase your work professionally.',
+                icon: '✨'
+              },
+              {
+                step: '03',
+                title: 'Review & Publish',
+                desc: 'Edit if needed, add images, and publish directly to LinkedIn with one click. Build your brand effortlessly.',
+                icon: '🚀'
+              }
+            ].map((item, i) => (
+              <div key={i} className="relative text-center group">
+                {/* Step number circle */}
+                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-purple-500/25 group-hover:scale-110 transition-transform z-10 relative">
+                  {item.step}
+                </div>
+                {/* Icon */}
+                <div className="text-4xl mb-4">{item.icon}</div>
+                {/* Content */}
+                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 leading-relaxed max-w-sm mx-auto">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* TESTIMONIALS SECTION */}
+        <div id="testimonials" className="max-w-7xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 text-sm font-medium mb-4">
+              Loved by Developers
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">What Developers Say</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              Join hundreds of developers building their personal brand.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                quote: "PostBot saved me hours every week. My LinkedIn engagement has tripled since I started using it to share my GitHub activity.",
+                author: "Sarah Chen",
+                role: "Senior Software Engineer",
+                company: "Stripe",
+                avatar: "👩‍💻"
+              },
+              {
+                quote: "As a maintainer of multiple open source projects, I never had time to post about my work. Now it's automated and I get way more visibility.",
+                author: "Marcus Johnson",
+                role: "Open Source Maintainer",
+                company: "React Native Community",
+                avatar: "👨‍💻"
+              },
+              {
+                quote: "I landed my dream job partly because recruiters found my LinkedIn posts about my coding projects. PostBot made that happen.",
+                author: "Priya Sharma",
+                role: "Full Stack Developer",
+                company: "Vercel",
+                avatar: "👩‍🔬"
+              }
+            ].map((testimonial, i) => (
+              <div key={i} className="p-8 rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:border-blue-500/30 transition-all duration-300 hover:shadow-xl">
+                {/* Stars */}
+                <div className="flex gap-1 mb-4 text-yellow-400">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <svg key={star} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                {/* Quote */}
+                <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed italic">
+                  "{testimonial.quote}"
+                </p>
+                {/* Author */}
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/50 dark:to-purple-900/50 flex items-center justify-center text-2xl">
+                    {testimonial.avatar}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">{testimonial.author}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{testimonial.role} @ {testimonial.company}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* STATS/SOCIAL PROOF SECTION */}
+        <div className="max-w-7xl mx-auto py-20 border-t border-gray-200 dark:border-white/10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            {[
+              { value: '2,500+', label: 'Developers', icon: '👨‍💻' },
+              { value: '50,000+', label: 'Posts Generated', icon: '📝' },
+              { value: '3x', label: 'Avg Engagement Boost', icon: '📈' },
+              { value: '4.9/5', label: 'User Rating', icon: '⭐' }
+            ].map((stat, i) => (
+              <div key={i} className="group">
+                <div className="text-4xl mb-2">{stat.icon}</div>
+                <div className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 mb-2 group-hover:scale-110 transition-transform">
+                  {stat.value}
+                </div>
+                <div className="text-gray-500 dark:text-gray-400 font-medium">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* INTEGRATIONS SECTION */}
+        <div id="integrations" className="max-w-7xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 text-sm font-medium mb-4">
+              Seamless Connections
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Integrations</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              Connect with your favorite tools and platforms.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { name: 'GitHub', icon: '🐙', status: 'active', desc: 'Scan commits, PRs, releases' },
+              { name: 'LinkedIn', icon: '💼', status: 'active', desc: 'Direct publishing via OAuth' },
+              { name: 'Groq AI', icon: '⚡', status: 'active', desc: 'Lightning-fast AI generation' },
+              { name: 'Unsplash', icon: '📸', status: 'active', desc: 'Beautiful stock images' },
+              { name: 'GitLab', icon: '🦊', status: 'coming', desc: 'Coming Q1 2025' },
+              { name: 'Bitbucket', icon: '🪣', status: 'coming', desc: 'Coming Q1 2025' },
+              { name: 'Twitter/X', icon: '🐦', status: 'coming', desc: 'Coming Q2 2025' },
+              { name: 'Threads', icon: '🧵', status: 'coming', desc: 'Coming Q2 2025' }
+            ].map((integration, i) => (
+              <div
+                key={i}
+                className={`p-6 rounded-2xl border transition-all duration-300 hover:shadow-lg ${integration.status === 'active'
+                  ? 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-blue-500/50'
+                  : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/5 opacity-60'
+                  }`}
+              >
+                <div className="text-3xl mb-3">{integration.icon}</div>
+                <div className="font-bold mb-1 flex items-center gap-2">
+                  {integration.name}
+                  {integration.status === 'active' && (
+                    <span className="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full">Active</span>
+                  )}
+                  {integration.status === 'coming' && (
+                    <span className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full">Soon</span>
+                  )}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{integration.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* PRICING SECTION */}
+        <div id="pricing" className="max-w-7xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-300 text-sm font-medium mb-4">
+              Simple Pricing
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Start Free, Scale When Ready</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              No hidden fees. Cancel anytime.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Free Tier */}
+            <div className="p-8 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:shadow-xl transition-all">
+              <div className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">Free</div>
+              <div className="text-4xl font-bold mb-1">$0</div>
+              <div className="text-gray-500 mb-6">Forever free</div>
+              <ul className="space-y-3 mb-8">
+                {['10 posts/month', 'Basic AI templates', 'GitHub integration', 'Manual publishing', 'Community support'].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => router.push('/sign-up')}
+                className="w-full py-3 px-6 rounded-xl border-2 border-gray-300 dark:border-white/20 font-semibold hover:border-blue-500 hover:text-blue-600 transition-all"
+              >
+                Get Started
+              </button>
+            </div>
+
+            {/* Pro Tier */}
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-700 text-white relative overflow-hidden transform hover:scale-105 transition-all shadow-xl">
+              <div className="absolute top-4 right-4 px-3 py-1 bg-white/20 rounded-full text-xs font-bold">
+                POPULAR
+              </div>
+              <div className="text-lg font-semibold text-blue-100 mb-2">Pro</div>
+              <div className="text-4xl font-bold mb-1">$19</div>
+              <div className="text-blue-200 mb-6">/month</div>
+              <ul className="space-y-3 mb-8">
+                {['Unlimited posts', 'All AI templates', 'Advanced customization', 'Scheduled posting', 'Priority support', 'Analytics dashboard'].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-green-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => router.push('/sign-up')}
+                className="w-full py-3 px-6 rounded-xl bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all"
+              >
+                Start Pro Trial
+              </button>
+            </div>
+
+            {/* Team Tier */}
+            <div className="p-8 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:shadow-xl transition-all">
+              <div className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">Team</div>
+              <div className="text-4xl font-bold mb-1">$49</div>
+              <div className="text-gray-500 mb-6">/month</div>
+              <ul className="space-y-3 mb-8">
+                {['Everything in Pro', 'Up to 5 team members', 'Shared content library', 'Team analytics', 'SSO & Admin controls', 'Dedicated support'].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => router.push('/sign-up')}
+                className="w-full py-3 px-6 rounded-xl border-2 border-gray-300 dark:border-white/20 font-semibold hover:border-blue-500 hover:text-blue-600 transition-all"
+              >
+                Contact Sales
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* FAQ SECTION */}
+        <div id="faq" className="max-w-4xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-300 text-sm font-medium mb-4">
+              Got Questions?
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Frequently Asked Questions</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              Everything you need to know about PostBot.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: 'Is PostBot really free?',
+                a: 'Yes! Our Free tier gives you 10 posts per month forever. No credit card required. Upgrade to Pro only if you need unlimited posts and advanced features.'
+              },
+              {
+                q: 'What AI model powers PostBot?',
+                a: 'We use Groq Cloud with the Llama 3 70B model for lightning-fast, high-quality content generation. You can also bring your own Groq API key.'
+              },
+              {
+                q: 'Is my data secure?',
+                a: 'Absolutely. We use OAuth 2.0 for LinkedIn (no passwords stored), encrypt all API keys, and never store your GitHub code. We\'re fully GDPR compliant.'
+              },
+              {
+                q: 'Does this violate LinkedIn\'s Terms of Service?',
+                a: 'No. PostBot uses LinkedIn\'s official OAuth and Share APIs. All posts are user-initiated (not automated bots). We follow all LinkedIn compliance guidelines.'
+              },
+              {
+                q: 'Can I edit the AI-generated posts?',
+                a: 'Yes! Every post can be fully edited before publishing. Add your personal touch, adjust tone, include hashtags - you have complete control.'
+              },
+              {
+                q: 'What happens to my scheduled posts if I downgrade?',
+                a: 'Any already-scheduled posts will still be published. You just won\'t be able to schedule new ones until you upgrade again.'
+              }
+            ].map((faq, i) => (
+              <details key={i} className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-blue-500/30 transition-all cursor-pointer">
+                <summary className="flex items-center justify-between font-semibold text-lg list-none">
+                  {faq.q}
+                  <svg className="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <p className="mt-4 text-gray-600 dark:text-gray-400 leading-relaxed">{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+
         {/* CTA SECTION */}
+
         <div className="max-w-5xl mx-auto mt-12 mb-20 p-12 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-700 text-center text-white relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('/grid.svg')] opacity-10"></div>
           <div className="relative z-10">
@@ -280,7 +730,113 @@ export default function Home() {
           </div>
         </div>
 
+        {/* RESOURCES SECTION */}
+        <div className="max-w-7xl mx-auto py-24 border-t border-gray-200 dark:border-white/10">
+          <div className="text-center mb-16">
+            <span className="inline-block px-4 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 text-sm font-medium mb-4">
+              Learn More
+            </span>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">Resources & Guides</h2>
+            <p className="text-xl text-gray-500 dark:text-gray-400">
+              Level up your LinkedIn game with our free resources.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Building in Public: Complete Guide',
+                desc: 'Learn how to share your developer journey and grow your audience authentically.',
+                icon: '📖',
+                tag: 'Guide',
+                tagClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+              },
+              {
+                title: 'LinkedIn Algorithm Secrets',
+                desc: 'What makes posts go viral? We analyzed 10,000 dev posts to find out.',
+                icon: '🔬',
+                tag: 'Research',
+                tagClass: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+              },
+              {
+                title: 'API Documentation',
+                desc: 'Integrate PostBot into your workflow with our comprehensive API docs.',
+                icon: '⚙️',
+                tag: 'Docs',
+                tagClass: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }
+            ].map((resource, i) => (
+              <div key={i} className="group p-6 rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-blue-500/30 transition-all hover:shadow-xl cursor-pointer">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-4xl">{resource.icon}</span>
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${resource.tagClass}`}>
+                    {resource.tag}
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold mb-2 group-hover:text-blue-600 transition-colors">{resource.title}</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{resource.desc}</p>
+                <div className="mt-4 flex items-center text-blue-600 dark:text-blue-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                  Read more
+                  <svg className="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* OPEN SOURCE BANNER */}
+        <div className="max-w-5xl mx-auto mb-20 p-8 md:p-12 rounded-3xl bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 relative overflow-hidden">
+          {/* Background decoration */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl"></div>
+
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="text-center md:text-left">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
+                <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+                <span className="text-white font-bold text-xl">100% Open Source</span>
+              </div>
+              <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
+                Built by developers, for developers
+              </h3>
+              <p className="text-gray-400 max-w-lg">
+                PostBot is MIT licensed and open source. Star us on GitHub, contribute features, or fork it for your own use.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a
+                href="https://github.com/cliff-de-tech/Linkedin-Post-Bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-xl font-bold hover:bg-gray-100 transition-all hover:scale-105"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+                Star on GitHub
+              </a>
+              <a
+                href="https://github.com/cliff-de-tech/Linkedin-Post-Bot/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 border-2 border-white/20 text-white rounded-xl font-bold hover:bg-white/10 transition-all"
+              >
+                Contribute
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
       </main>
+
 
       {/* Footer */}
       <footer className="border-t border-gray-200 dark:border-white/10 py-12 bg-gray-50 dark:bg-black/20">
@@ -289,8 +845,8 @@ export default function Home() {
             © 2024 PostBot. Open Source under MIT License.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-blue-500 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-blue-500 transition-colors">Terms</a>
+            <a href="/privacy" className="hover:text-blue-500 transition-colors">Privacy</a>
+            <a href="/terms" className="hover:text-blue-500 transition-colors">Terms</a>
             <a href="https://github.com/cliff-de-tech/Linkedin-Post-Bot" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 transition-colors">GitHub</a>
           </div>
         </div>
