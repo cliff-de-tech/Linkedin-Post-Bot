@@ -323,6 +323,37 @@ The frontend **NEVER** receives sensitive data:
 
 ---
 
+## Testing
+
+Test files are located in the `tests/` directory:
+
+```
+tests/
+├── test_github.py              # GitHub API integration tests
+└── verify_phase2_security.py   # Security verification suite
+```
+
+### Run Security Verification
+
+```bash
+# Run all Phase 2 security checks
+py tests/verify_phase2_security.py
+
+# Expected output: 6/6 tests passed
+```
+
+### Security Tests Include:
+| Test | Description |
+|------|-------------|
+| `encryption_production` | Verifies fail-fast when `ENCRYPTION_KEY` missing in production |
+| `encryption_development` | Verifies plaintext fallback with warning in development |
+| `token_migration` | Checks atomic transactions with commit/rollback |
+| `github_auth` | Validates deterministic endpoint selection based on token |
+| `frontend_secrets` | Confirms no secrets in API request models |
+| `readme_docs` | Verifies documentation matches implementation |
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
