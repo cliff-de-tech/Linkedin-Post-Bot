@@ -513,7 +513,35 @@ def get_connection_status_endpoint(user_id: str):
         }
 
 
-# GitHub activity endpoints
+class DisconnectRequest(BaseModel):
+    user_id: str
+
+
+@app.post("/api/disconnect-linkedin")
+def disconnect_linkedin(request: DisconnectRequest):
+    """
+    Disconnect a user's LinkedIn account.
+    
+    Removes the stored OAuth token, requiring re-authentication
+    to post again.
+    
+    SECURITY:
+        - User can only disconnect their own account
+        - Token is permanently deleted from database
+    """
+    try:
+        from services.token_store import delete_token_by_user_id
+        
+        deleted = delete_token_by_user_id(request.user_id)
+        
+        if deleted:
+            return {"success": True, "message": "LinkedIn disconnected"}
+        else:
+            return {"success": False, "message": "No connection found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 @app.get("/api/github/activity/{username}")
 def github_activity(username: str, limit: int = 10):
     """Get GitHub activity for a user"""

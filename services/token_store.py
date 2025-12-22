@@ -453,6 +453,40 @@ def save_github_token(user_id: str, github_username: str, github_access_token: s
     return True
 
 
+def delete_token_by_user_id(user_id: str) -> bool:
+    """
+    Delete a user's token record (disconnect LinkedIn).
+    
+    Used when a user wants to disconnect their LinkedIn account.
+    
+    Args:
+        user_id: Clerk user ID
+        
+    Returns:
+        True if deleted, False if not found
+        
+    SECURITY: 
+        - Enforces tenant isolation (can only delete own token)
+        - No cross-user deletion possible
+    """
+    init_db()
+    conn = get_conn()
+    cur = conn.cursor()
+    
+    try:
+        # Delete the token record for this user
+        cur.execute('DELETE FROM accounts WHERE user_id=?', (user_id,))
+        deleted = cur.rowcount > 0
+        conn.commit()
+        return deleted
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting token: {e}")
+        return False
+    finally:
+        conn.close()
+
+
 def get_all_tokens() -> list[dict]:
     """
     Retrieve all stored tokens (ADMIN/MIGRATION USE ONLY).

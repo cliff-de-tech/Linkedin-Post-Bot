@@ -572,6 +572,30 @@ New users go through a simple 4-step setup:
 - ❌ Unsplash keys (server-managed)
 - ❌ Any technical credentials
 
+### Settings Page
+
+The settings page (`/settings`) shows connection status only—no credential input:
+
+**Features:**
+- ✅ LinkedIn connection status (Connected / Not Connected)
+- ✅ GitHub username display and edit
+- ✅ "Reconnect" button for LinkedIn OAuth
+- ✅ "Disconnect" button to remove LinkedIn connection
+- ✅ Token expiry date display
+
+**Not Displayed:**
+- ❌ Access tokens
+- ❌ Refresh tokens
+- ❌ API keys
+- ❌ Any sensitive credentials
+
+**Backend Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/connection-status/{user_id}` | GET | Returns boolean connection states only |
+| `/api/disconnect-linkedin` | POST | Deletes stored OAuth token |
+
 ### API Documentation
 
 The FastAPI backend provides OpenAPI documentation at stable URLs:
