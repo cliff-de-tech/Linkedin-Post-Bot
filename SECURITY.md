@@ -118,7 +118,65 @@ This ensures:
 
 ---
 
-## API Key Storage
+## Multi-Tenant Isolation Guarantees
+
+### Design Principle
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│             MULTI-TENANT ISOLATION GUARANTEES                      │
+├───────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  ✅ User A can ONLY access:          ❌ User A can NEVER access:  │
+│  - Their own OAuth tokens            - User B's tokens            │
+│  - Their own GitHub activity         - User B's activity          │
+│  - Their own LinkedIn posts          - User B's posts             │
+│  - Their own settings                - User B's settings          │
+│                                                                    │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation Details
+
+**Database Level:**
+- Every query includes `WHERE user_id = ?`
+- User ID is the Clerk authentication ID
+- No admin endpoints return all users' data
+
+**API Level:**
+- User ID extracted from JWT claims
+- All endpoints scoped to authenticated user
+- Cross-user access returns 404/403
+
+**Service Level:**
+- GitHub activity: Scoped by username/token
+- AI generation: Receives only user's activity
+- LinkedIn posting: Uses only user's OAuth token
+
+### Token Validation
+
+Before any operation that requires an OAuth token:
+
+```python
+# 1. Verify user is authenticated (Clerk JWT)
+# 2. Retrieve token by user_id (tenant isolation)
+# 3. Check token exists
+# 4. Check token not expired
+# 5. Proceed or return error
+```
+
+**Graceful Failure Handling:**
+- Missing token → "Please connect your account"
+- Expired token → "Please reconnect your account"
+- Invalid token → "Authentication failed, please reconnect"
+- Rate limited → "Too many requests, please wait"
+
+### Cross-User Prevention
+
+1. **No token enumeration** — Tokens keyed by user_id, not sequential IDs
+2. **No URN guessing** — LinkedIn URN not exposed externally
+3. **Parameterized queries** — SQL injection prevented
+4. **JWT validation** — User identity verified on every request
 
 ### In-Transit
 

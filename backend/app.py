@@ -64,6 +64,13 @@ except ImportError:
     get_user_posts = None
     get_user_stats = None
 
+# Import Rate Limiter
+try:
+    from services.rate_limiter import check_rate_limit, get_rate_limit_status
+except ImportError:
+    check_rate_limit = None
+    get_rate_limit_status = None
+
 try:
     # Import core functions from the refactored services
     # from services.ai_service import generate_post_with_ai # Already imported above
