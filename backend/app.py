@@ -166,6 +166,49 @@ except ImportError:
     api_limiter = None
     RateLimitExceededError = Exception
 
+# =============================================================================
+# ENVIRONMENT VALIDATION
+# =============================================================================
+def validate_environment():
+    """Validate required environment variables on startup."""
+    required_vars = {
+        "GROQ_API_KEY": "AI content generation",
+        "LINKEDIN_CLIENT_ID": "LinkedIn OAuth",
+        "LINKEDIN_CLIENT_SECRET": "LinkedIn OAuth",
+    }
+    
+    optional_but_recommended = {
+        "GITHUB_CLIENT_ID": "GitHub OAuth (private repos)",
+        "GITHUB_CLIENT_SECRET": "GitHub OAuth (private repos)",
+        "UNSPLASH_ACCESS_KEY": "Image generation",
+    }
+    
+    missing_required = []
+    missing_optional = []
+    
+    for var, purpose in required_vars.items():
+        if not os.getenv(var):
+            missing_required.append(f"  - {var}: {purpose}")
+    
+    for var, purpose in optional_but_recommended.items():
+        if not os.getenv(var):
+            missing_optional.append(f"  - {var}: {purpose}")
+    
+    if missing_required:
+        print("\n⚠️  WARNING: Missing REQUIRED environment variables:")
+        for msg in missing_required:
+            print(msg)
+        print("  Some features will not work until these are set.\n")
+    
+    if missing_optional:
+        print("\n💡 TIP: Missing OPTIONAL environment variables:")
+        for msg in missing_optional:
+            print(msg)
+        print("  These are recommended for full functionality.\n")
+
+# Run validation on import
+validate_environment()
+
 app = FastAPI(
     title="LinkedIn Post Bot API",
     description="""
@@ -207,9 +250,14 @@ if init_settings_db:
     init_settings_db()
 
 # Add CORS middleware
+# CORS_ORIGINS env var should be comma-separated list of allowed origins
+# Example: CORS_ORIGINS=http://localhost:3000,https://your-app.vercel.app
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+CORS_ORIGINS = [origin.strip() for origin in CORS_ORIGINS if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
