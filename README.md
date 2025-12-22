@@ -553,6 +553,11 @@ New users go through a simple 4-step setup:
 │  Enter public GitHub username (e.g., "cliff-de-tech")           │
 │  Used to fetch public activity for post content                 │
 │                                                                  │
+│  [Optional] Connect GitHub OAuth                                │
+│  ──────────────────────────────                                 │
+│  For private repository access                                  │
+│  Grants read-only access to your repos                          │
+│                                                                  │
 │  Step 3: Connect LinkedIn                                       │
 │  ────────────────────────                                       │
 │  One-click OAuth connection                                     │
@@ -579,8 +584,9 @@ The settings page (`/settings`) shows connection status only—no credential inp
 **Features:**
 - ✅ LinkedIn connection status (Connected / Not Connected)
 - ✅ GitHub username display and edit
-- ✅ "Reconnect" button for LinkedIn OAuth
-- ✅ "Disconnect" button to remove LinkedIn connection
+- ✅ GitHub OAuth status (for private repos)
+- ✅ "Reconnect" / "Disconnect" for LinkedIn
+- ✅ "Connect" / "Disconnect" for GitHub OAuth
 - ✅ Token expiry date display
 
 **Not Displayed:**
@@ -594,7 +600,8 @@ The settings page (`/settings`) shows connection status only—no credential inp
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/connection-status/{user_id}` | GET | Returns boolean connection states only |
-| `/api/disconnect-linkedin` | POST | Deletes stored OAuth token |
+| `/api/disconnect-linkedin` | POST | Deletes stored LinkedIn OAuth token |
+| `/api/disconnect-github` | POST | Deletes stored GitHub OAuth token |
 
 ### Data Isolation & Accuracy Guarantees
 
@@ -707,6 +714,96 @@ linkedin-post-bot/
 │   └── user_settings.py    # Settings storage
 ├── bot.py                  # Standalone CLI bot
 └── auth.py                 # OAuth helper
+```
+
+---
+
+## CLI vs Web Usage Differences
+
+PostBot supports **two modes of operation**:
+
+### Web Application Mode
+
+The web app (`web/` + `backend/`) is designed for multi-user SaaS deployment:
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Authentication** | Clerk (JWT-based) |
+| **Credentials** | Per-user encrypted token storage |
+| **LinkedIn OAuth** | User authorizes via web flow |
+| **GitHub Access** | Username (public) + optional OAuth (private) |
+| **API Keys** | App-level only (env vars) |
+| **Multi-User** | ✅ Full tenant isolation |
+
+**Configuration:**
+```bash
+# Backend .env
+LINKEDIN_CLIENT_ID=...      # Your LinkedIn app
+LINKEDIN_CLIENT_SECRET=...
+GROQ_API_KEY=...           # Shared AI key
+UNSPLASH_ACCESS_KEY=...    # Shared image key
+ENCRYPTION_KEY=...         # Token encryption
+
+# Frontend .env.local
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+```
+
+### CLI Bot Mode
+
+The standalone `bot.py` is designed for personal/scheduled use:
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Authentication** | Environment variables only |
+| **Credentials** | Single user, loaded from `.env` |
+| **LinkedIn OAuth** | Pre-configured token (manual setup) |
+| **GitHub Access** | Token from env var |
+| **API Keys** | Personal keys in `.env` |
+| **Multi-User** | ❌ Single user only |
+
+**Configuration:**
+```bash
+# .env for CLI mode
+LINKEDIN_ACCESS_TOKEN=...   # Your personal token
+LINKEDIN_USER_URN=...       # Your LinkedIn URN
+MY_GITHUB_USERNAME=...
+GITHUB_TOKEN=...           # Optional: higher rate limits
+GROQ_API_KEY=...
+UNSPLASH_ACCESS_KEY=...
+```
+
+### When to Use Each
+
+| Use Case | Recommended Mode |
+|----------|------------------|
+| Personal automated posting | CLI (`bot.py`) |
+| Scheduled cron jobs | CLI (`bot.py`) |
+| Multi-user platform | Web App |
+| Team/agency use | Web App |
+| Quick one-off posts | Either |
+
+### Shared Service Layer
+
+Both modes use the same `services/` modules:
+
+```
+CLI (bot.py)                Web (backend/app.py)
+     │                              │
+     └──────────────────────────────┘
+                     │
+                     ▼
+     ┌───────────────────────────────┐
+     │  services/                    │
+     │  - github_activity.py         │
+     │  - ai_service.py              │
+     │  - linkedin_service.py        │
+     │  - image_service.py           │
+     └───────────────────────────────┘
+                     │
+         ┌───────────┴───────────┐
+         ▼                       ▼
+   ENV vars (CLI)          token_store (Web)
 ```
 
 ---
