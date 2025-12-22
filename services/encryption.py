@@ -20,18 +20,39 @@ ENCRYPTION KEY:
     - Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     - Must be 32 bytes, URL-safe base64-encoded
 
+ENVIRONMENT BEHAVIOR:
+    ┌─────────────────────────────────────────────────────────────────────────┐
+    │ ENV=development (or unset):                                              │
+    │   - ENCRYPTION_KEY missing: WARNING logged, plaintext storage allowed   │
+    │   - This enables local development without encryption setup             │
+    │                                                                          │
+    │ ENV=production:                                                          │
+    │   - ENCRYPTION_KEY missing: RUNTIME ERROR, application FAILS TO START   │
+    │   - This prevents ANY possibility of plaintext token storage            │
+    │   - This is a SECURITY REQUIREMENT, not a bug                           │
+    └─────────────────────────────────────────────────────────────────────────┘
+
 SECURITY NOTES:
     - Fernet provides AES-128-CBC encryption with HMAC authentication
     - Each encrypted value includes a timestamp for key rotation support
-    - Graceful fallback for development (warns if key not set)
-    - Auto-migration: plaintext tokens encrypted on first access
+    - Production MUST have ENCRYPTION_KEY set - no exceptions
+    - Encrypted values are prefixed with "ENC:" for identification
 """
 
 import os
-import base64
 import logging
 
 logger = logging.getLogger(__name__)
+
+# =============================================================================
+# ENVIRONMENT CONFIGURATION
+# =============================================================================
+
+# SECURITY: Determine environment mode
+# - "production" = strict mode, encryption required
+# - "development" or unset = permissive mode for local dev
+ENV = os.getenv('ENV', 'development').lower()
+IS_PRODUCTION = ENV == 'production'
 
 # Load encryption key from environment
 # SECURITY: This key must be kept secret and never committed to version control
@@ -39,6 +60,97 @@ ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '')
 
 # Lazy-loaded Fernet instance
 _fernet = None
+_initialization_checked = False
+
+
+# =============================================================================
+# PRODUCTION SAFETY CHECK
+# =============================================================================
+
+class EncryptionKeyMissingError(Exception):
+    """
+    Raised when ENCRYPTION_KEY is missing in production.
+    
+    This is a FATAL error - the application should NOT start without encryption
+    in production environments. This prevents any possibility of storing
+    sensitive tokens in plaintext.
+    """
+    pass
+
+
+def _check_encryption_requirements():
+    """
+    Validate encryption requirements based on environment.
+    
+    PRODUCTION BEHAVIOR:
+        - If ENCRYPTION_KEY is missing, raises EncryptionKeyMissingError
+        - Application WILL NOT START - this is intentional
+        - Tokens must NEVER be stored in plaintext in production
+    
+    DEVELOPMENT BEHAVIOR:
+        - If ENCRYPTION_KEY is missing, logs a WARNING
+        - Allows plaintext storage for local development convenience
+        - Developer is reminded to set the key before deploying
+    
+    This function is called once on first encryption/decryption attempt.
+    """
+    global _initialization_checked
+    
+    if _initialization_checked:
+        return
+    
+    _initialization_checked = True
+    
+    if not ENCRYPTION_KEY:
+        if IS_PRODUCTION:
+            # ═══════════════════════════════════════════════════════════════════
+            # PRODUCTION FAIL-FAST: Missing ENCRYPTION_KEY is a FATAL error
+            # 
+            # WHY THIS EXISTS:
+            # - Tokens stored in plaintext are a critical security vulnerability
+            # - In production, there is NO acceptable reason to skip encryption
+            # - Failing fast ensures the issue is discovered immediately
+            # - This prevents silent data exposure that could go unnoticed
+            # ═══════════════════════════════════════════════════════════════════
+            error_msg = (
+                "\n"
+                "╔══════════════════════════════════════════════════════════════════╗\n"
+                "║  FATAL: ENCRYPTION_KEY environment variable is not set           ║\n"
+                "║                                                                  ║\n"
+                "║  In production (ENV=production), encryption is REQUIRED.         ║\n"
+                "║  Tokens cannot be stored in plaintext.                           ║\n"
+                "║                                                                  ║\n"
+                "║  Fix: Set ENCRYPTION_KEY in your environment:                    ║\n"
+                "║       python -c \"from cryptography.fernet import Fernet;         ║\n"
+                "║                   print(Fernet.generate_key().decode())\"         ║\n"
+                "║                                                                  ║\n"
+                "║  Then add to your .env or environment:                           ║\n"
+                "║       ENCRYPTION_KEY=<generated_key>                             ║\n"
+                "╚══════════════════════════════════════════════════════════════════╝\n"
+            )
+            logger.critical(error_msg)
+            raise EncryptionKeyMissingError(error_msg)
+        else:
+            # ═══════════════════════════════════════════════════════════════════
+            # DEVELOPMENT FALLBACK: Plaintext storage allowed with warning
+            # 
+            # WHY THIS EXISTS:
+            # - Local development should work without complex setup
+            # - Developers can iterate quickly without encryption overhead
+            # - The warning reminds developers to configure before production
+            # 
+            # IMPORTANT: This ONLY applies when ENV != 'production'
+            # ═══════════════════════════════════════════════════════════════════
+            logger.warning(
+                "\n"
+                "⚠️  ENCRYPTION_KEY not set (ENV=%s)\n"
+                "   Tokens will be stored in PLAINTEXT - acceptable for development only.\n"
+                "   Before deploying to production:\n"
+                "   1. Generate a key: python services/encryption.py\n"
+                "   2. Add to .env: ENCRYPTION_KEY=<key>\n"
+                "   3. Set ENV=production\n",
+                ENV
+            )
 
 
 def _get_fernet():
@@ -46,21 +158,21 @@ def _get_fernet():
     Get or create the Fernet encryption instance.
     
     Returns:
-        Fernet instance or None if key not configured
+        Fernet instance or None if key not configured (dev mode only)
         
-    SECURITY: Logs a warning (not error) if key is missing to allow
-    development without encryption, but production MUST have this set.
+    Raises:
+        EncryptionKeyMissingError: If in production and key is missing
     """
     global _fernet
+    
+    # Check requirements on first call
+    _check_encryption_requirements()
     
     if _fernet is not None:
         return _fernet
     
     if not ENCRYPTION_KEY:
-        logger.warning(
-            "ENCRYPTION_KEY not set. Tokens will be stored in plaintext. "
-            "Set ENCRYPTION_KEY environment variable for production."
-        )
+        # Only reachable in development mode (production would have raised)
         return None
     
     try:
@@ -68,9 +180,15 @@ def _get_fernet():
         _fernet = Fernet(ENCRYPTION_KEY.encode())
         return _fernet
     except Exception as e:
+        if IS_PRODUCTION:
+            raise EncryptionKeyMissingError(f"Invalid ENCRYPTION_KEY: {e}")
         logger.error(f"Failed to initialize encryption: {e}")
         return None
 
+
+# =============================================================================
+# ENCRYPTION / DECRYPTION FUNCTIONS
+# =============================================================================
 
 def encrypt_value(plaintext: str) -> str:
     """
@@ -80,19 +198,27 @@ def encrypt_value(plaintext: str) -> str:
         plaintext: The sensitive value to encrypt
         
     Returns:
-        Base64-encoded encrypted string, or original if encryption unavailable
+        Base64-encoded encrypted string prefixed with "ENC:", 
+        or original plaintext in development mode without key
+        
+    Raises:
+        EncryptionKeyMissingError: If in production and encryption unavailable
         
     SECURITY:
-        - Returns prefixed value (ENC:) to identify encrypted data
-        - If encryption fails, returns plaintext with warning
+        - In production: ALWAYS encrypts, fails if can't
+        - In development: Falls back to plaintext with warning
         - Empty/None values return empty string
     """
     if not plaintext:
         return ''
     
     fernet = _get_fernet()
+    
     if not fernet:
-        # Development fallback - store plaintext but log warning
+        # ─────────────────────────────────────────────────────────────────────
+        # DEV-ONLY FALLBACK: Return plaintext
+        # This code path is UNREACHABLE in production (would have raised)
+        # ─────────────────────────────────────────────────────────────────────
         return plaintext
     
     try:
@@ -100,6 +226,8 @@ def encrypt_value(plaintext: str) -> str:
         # Prefix with ENC: to identify encrypted values
         return f"ENC:{encrypted.decode()}"
     except Exception as e:
+        if IS_PRODUCTION:
+            raise EncryptionKeyMissingError(f"Encryption failed in production: {e}")
         logger.error(f"Encryption failed: {e}")
         return plaintext
 
@@ -114,10 +242,13 @@ def decrypt_value(encrypted: str) -> str:
     Returns:
         Decrypted plaintext string
         
+    Raises:
+        EncryptionKeyMissingError: If in production and decryption unavailable
+        
     SECURITY:
         - Handles both encrypted (ENC: prefix) and legacy plaintext values
-        - Auto-migration: plaintext values are returned as-is for re-encryption
-        - Decryption failures return empty string (fail secure)
+        - In production: Requires encryption key for encrypted values
+        - Decryption failures in production raise errors (fail secure)
     """
     if not encrypted:
         return ''
@@ -125,10 +256,16 @@ def decrypt_value(encrypted: str) -> str:
     # Check if value is encrypted (has ENC: prefix)
     if not encrypted.startswith('ENC:'):
         # Legacy plaintext value - return as-is for auto-migration
+        # The caller should re-encrypt and save this value
         return encrypted
     
     fernet = _get_fernet()
+    
     if not fernet:
+        if IS_PRODUCTION:
+            raise EncryptionKeyMissingError(
+                "Cannot decrypt: ENCRYPTION_KEY not set in production"
+            )
         logger.error("Cannot decrypt: ENCRYPTION_KEY not set")
         return ''
     
@@ -138,6 +275,8 @@ def decrypt_value(encrypted: str) -> str:
         decrypted = fernet.decrypt(encrypted_data.encode())
         return decrypted.decode()
     except Exception as e:
+        if IS_PRODUCTION:
+            raise EncryptionKeyMissingError(f"Decryption failed in production: {e}")
         logger.error(f"Decryption failed: {e}")
         return ''
 
@@ -164,12 +303,12 @@ def mask_token(token: str, visible_chars: int = 8) -> str:
         visible_chars: Number of characters to show at start and end
         
     Returns:
-        Masked string like "AQXr...Xw" or "••••••••" if too short
+        Masked string like "AQXr...Xw" or "••••••••" if too short/encrypted
         
     SECURITY: 
-        - NEVER returns the actual token
+        - NEVER returns the actual token value
         - Used for frontend display only
-        - Decrypts internally if needed, but only returns masked version
+        - Safe to return to any caller
     """
     if not token:
         return ''
@@ -186,8 +325,18 @@ def mask_token(token: str, visible_chars: int = 8) -> str:
 
 
 # =============================================================================
-# KEY GENERATION UTILITY
+# UTILITY FUNCTIONS
 # =============================================================================
+
+def get_environment_mode() -> str:
+    """Return current environment mode for diagnostics."""
+    return 'production' if IS_PRODUCTION else 'development'
+
+
+def is_encryption_enabled() -> bool:
+    """Check if encryption is properly configured."""
+    return bool(ENCRYPTION_KEY)
+
 
 def generate_key() -> str:
     """
@@ -203,9 +352,22 @@ def generate_key() -> str:
     return Fernet.generate_key().decode()
 
 
+# =============================================================================
+# CLI UTILITY
+# =============================================================================
+
 if __name__ == '__main__':
-    # CLI utility to generate a new encryption key
+    print("=" * 60)
+    print("ENCRYPTION KEY GENERATOR")
+    print("=" * 60)
+    print()
     print("Generated ENCRYPTION_KEY:")
     print(generate_key())
-    print("\nAdd this to your .env file:")
-    print("ENCRYPTION_KEY=<key_above>")
+    print()
+    print("Add this to your .env file:")
+    print("  ENCRYPTION_KEY=<key_above>")
+    print("  ENV=production  # Required for production mode")
+    print()
+    print("Current mode:", get_environment_mode())
+    print("Encryption configured:", is_encryption_enabled())
+    print("=" * 60)
