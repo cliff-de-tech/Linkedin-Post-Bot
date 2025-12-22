@@ -407,14 +407,13 @@ def linkedin_callback(code: str = None, state: str = None, redirect_uri: str = N
 
 
 # User settings endpoints
+# SECURITY: Only safe fields are accepted from frontend
 class UserSettingsRequest(BaseModel):
     user_id: str
-    linkedin_client_id: Optional[str] = None
-    linkedin_client_secret: Optional[str] = None
-    linkedin_user_urn: Optional[str] = None
-    groq_api_key: Optional[str] = None
     github_username: Optional[str] = None
-    unsplash_access_key: Optional[str] = None
+    onboarding_complete: Optional[bool] = None
+    # NOTE: API keys are managed server-side via environment variables
+    # Frontend NEVER sends credentials to this endpoint
 
 
 class AuthRefreshRequest(BaseModel):
@@ -454,38 +453,64 @@ def save_settings(settings: UserSettingsRequest):
 
 @app.get("/api/settings/{user_id}")
 def get_settings(user_id: str):
-    """Get user settings by user ID"""
+    """
+    Get user settings by user ID.
+    
+    SECURITY: Returns ONLY safe, non-sensitive data.
+    No credentials, tokens, or API keys are returned.
+    """
     if not get_user_settings:
         return {"error": "User settings service not available"}
     try:
         settings = get_user_settings(user_id)
         if settings:
-            # Return masked versions of secrets so frontend knows they're saved
-            # but doesn't expose the actual values
-            groq_key = settings.get("groq_api_key")
-            unsplash_key = settings.get("unsplash_access_key")
-            linkedin_id = settings.get("linkedin_client_id")
-            linkedin_secret = settings.get("linkedin_client_secret")
-            
+            # SECURITY: Only return safe data, no credentials
             return {
                 "user_id": settings.get("user_id"),
                 "github_username": settings.get("github_username") or "",
-                # Return masked versions for display
-                "groq_api_key": f"{groq_key[:8]}...{groq_key[-4:]}" if groq_key and len(groq_key) > 12 else ("••••••••" if groq_key else ""),
-                "unsplash_access_key": f"{unsplash_key[:8]}...{unsplash_key[-4:]}" if unsplash_key and len(unsplash_key) > 12 else ("••••••••" if unsplash_key else ""),
-                "linkedin_client_id": linkedin_id or "",
-                "linkedin_client_secret": "••••••••" if linkedin_secret else "",
-                # Also keep the boolean flags for compatibility
-                "has_linkedin": bool(linkedin_id),
-                "has_groq": bool(groq_key),
-                "has_unsplash": bool(unsplash_key),
+                "onboarding_complete": settings.get("onboarding_complete", False),
                 "subscription_tier": settings.get("subscription_tier") or "free",
                 "subscription_status": settings.get("subscription_status") or "active",
-                "subscription_expires_at": settings.get("subscription_expires_at"),
             }
         return {"error": "User not found"}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/api/connection-status/{user_id}")
+def get_connection_status_endpoint(user_id: str):
+    """
+    Get connection status for a user.
+    
+    SECURITY: Returns ONLY boolean status and public identifiers.
+    No tokens or credentials are ever returned.
+    """
+    try:
+        # Import get_connection_status from token_store
+        from services.token_store import get_connection_status
+        
+        status = get_connection_status(user_id)
+        
+        # Also get github_username from settings
+        github_username = ''
+        if get_user_settings:
+            settings = get_user_settings(user_id)
+            if settings:
+                github_username = settings.get('github_username', '')
+        
+        return {
+            "linkedin_connected": status.get("linkedin_connected", False),
+            "linkedin_urn": status.get("linkedin_urn", ""),
+            "github_connected": bool(github_username),
+            "github_username": github_username,
+            "token_expires_at": status.get("token_expires_at"),
+        }
+    except Exception as e:
+        return {
+            "linkedin_connected": False,
+            "github_connected": False,
+            "error": str(e)
+        }
 
 
 # GitHub activity endpoints

@@ -80,30 +80,34 @@ export default function APIReference() {
     {
       method: 'GET',
       path: '/api/settings/{user_id}',
-      description: 'Get user settings',
+      description: 'Get user settings (safe data only, no credentials)',
       params: ['user_id: User identifier'],
-      response: '{"linkedin_client_id": "...", "groq_api_key": "...", ...}',
+      response: '{"user_id": "...", "github_username": "...", "onboarding_complete": true, "subscription_tier": "free"}',
     },
     {
       method: 'POST',
       path: '/api/settings',
-      description: 'Update user settings',
+      description: 'Update user settings (public identifiers only)',
       body: `{
   "user_id": "user_123",
-  "linkedin_client_id": "...",
-  "linkedin_client_secret": "...",
-  "groq_api_key": "...",
   "github_username": "johndoe",
-  "unsplash_access_key": "..."
+  "onboarding_complete": true
 }`,
       response: '{"success": true}',
     },
     {
+      method: 'GET',
+      path: '/api/connection-status/{user_id}',
+      description: 'Get connection status (LinkedIn/GitHub)',
+      params: ['user_id: User identifier'],
+      response: '{"linkedin_connected": true, "github_connected": true, "github_username": "johndoe"}',
+    },
+    {
       method: 'POST',
       path: '/api/auth/refresh',
-      description: 'Refresh LinkedIn access token',
+      description: 'Check LinkedIn connection status',
       body: '{"user_id": "user_123"}',
-      response: '{"access_token": "...", "expires_in": 3600}',
+      response: '{"authenticated": true, "user_urn": "..."}',
     },
   ];
 
@@ -129,11 +133,11 @@ export default function APIReference() {
           <ThemeToggle />
         </div>
       </header>
-      <SEOHead 
+      <SEOHead
         title="API Reference - LinkedIn Post Bot"
         description="Complete API documentation for LinkedIn Post Bot. Integrate and automate your LinkedIn content creation."
       />
-      
+
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -162,7 +166,7 @@ export default function APIReference() {
           <p className="text-lg text-gray-600 mb-6">
             Complete documentation for integrating with LinkedIn Post Bot API
           </p>
-          
+
           <div className="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg">
             <p className="text-blue-900 font-medium mb-2">Base URL</p>
             <code className="bg-white px-3 py-1 rounded text-blue-600 font-mono">
@@ -176,7 +180,7 @@ export default function APIReference() {
 
         <div className="space-y-6">
           {endpoints.map((endpoint, index) => (
-            <div 
+            <div
               key={index}
               className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all"
             >
@@ -234,7 +238,7 @@ export default function APIReference() {
             Most endpoints require authentication via LinkedIn OAuth 2.0. Include the access token in requests:
           </p>
           <pre className="bg-black/20 p-4 rounded-lg text-sm">
-{`Authorization: Bearer YOUR_ACCESS_TOKEN`}
+            {`Authorization: Bearer YOUR_ACCESS_TOKEN`}
           </pre>
           <p className="text-blue-100 mt-4 text-sm">
             Tokens expire after 60 days. Use the <code className="bg-white/20 px-2 py-0.5 rounded">/api/auth/refresh</code> endpoint to renew.
