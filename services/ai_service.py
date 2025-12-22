@@ -226,3 +226,57 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
     except Exception as e:
         print(f"❌ Error generating post with Groq: {e}")
         return None
+
+
+def synthesize_hashtags(post_content: str, desired: int = 18) -> str:
+    """
+    Create a fallback set of hashtags based on keywords in the post.
+    
+    Args:
+        post_content: The post text to analyze for relevant keywords
+        desired: Number of hashtags to generate (default 18)
+        
+    Returns:
+        String of space-separated hashtags
+        
+    Used as fallback when AI doesn't generate proper hashtags.
+    """
+    keywords_map = {
+        'design': '#Design', 'ui': '#UI', 'ux': '#UX', 'frontend': '#Frontend',
+        'react': '#React', 'javascript': '#JavaScript', 'python': '#Python', 'node': '#NodeJS',
+        'automation': '#Automation', 'bot': '#Bot', 'ai': '#AI', 'ml': '#MachineLearning',
+        'open source': '#OpenSource', 'opensource': '#OpenSource', 'web': '#WebDevelopment',
+        'learning': '#Learning', 'student': '#Student', 'career': '#Career', 'product': '#Product',
+        'backend': '#Backend', 'api': '#API', 'database': '#Database', 'cloud': '#Cloud',
+        'github': '#GitHub', 'code': '#Code', 'coding': '#Coding', 'css': '#CSS', 'html': '#HTML'
+    }
+    
+    text = post_content.lower()
+    selected = []
+    
+    # Match keywords in content
+    for k, tag in keywords_map.items():
+        if k in text and tag not in selected:
+            selected.append(tag)
+    
+    # Comprehensive defaults pool
+    defaults = [
+        '#WebDev', '#100DaysOfCode', '#Coding', '#Developer', '#Tech', '#Programming', 
+        '#Growth', '#Creativity', '#DevCommunity', '#TechCareer', '#Innovation',
+        '#BuildInPublic', '#LearnInPublic', '#SoftwareEngineering', '#CodeNewbie',
+        '#TechTwitter', '#DeveloperLife', '#OpenSource', '#CodingLife', '#WebDesign'
+    ]
+    
+    # Fill with defaults
+    for d in defaults:
+        if len(selected) >= desired:
+            break
+        if d not in selected:
+            selected.append(d)
+    
+    # Ensure exactly `desired` hashtags
+    if len(selected) > desired:
+        selected = selected[:desired]
+    
+    return ' '.join(selected)
+

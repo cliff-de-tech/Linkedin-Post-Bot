@@ -15,6 +15,33 @@ try:
 except ImportError:
     pass  # dotenv not installed, will use system environment variables
 
+# =============================================================================
+# SERVICE IMPORTS (Multi-tenant ready)
+# These services accept user context parameters for web app usage.
+# For CLI mode (this file), we read from env vars and pass as params.
+# =============================================================================
+try:
+    from services.github_activity import (
+        get_user_activity as service_get_user_activity,
+        get_github_stats as service_get_github_stats,
+        get_recent_repo_updates as service_get_recent_repo_updates
+    )
+    from services.ai_service import (
+        generate_post_with_ai as service_generate_post,
+        synthesize_hashtags as service_synthesize_hashtags
+    )
+    from services.linkedin_service import (
+        post_to_linkedin as service_post_to_linkedin,
+        upload_image_to_linkedin as service_upload_image
+    )
+    from services.image_service import (
+        get_relevant_image as service_get_relevant_image
+    )
+    SERVICES_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Services not available (running standalone): {e}")
+    SERVICES_AVAILABLE = False
+
 # --- CONFIGURATION (Load from environment variables for security) ---
 # For local testing: create a .env file or set these manually
 # For GitHub Actions: secrets are automatically injected

@@ -1,7 +1,7 @@
 import requests
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -264,3 +264,147 @@ def get_repo_details(repo_full_name: str, token: str = None):
         logger.error(f"Error fetching repo details: {e}")
     
     return None
+
+
+def get_github_stats(username: str, token: str = None):
+    """
+    Fetch GitHub user stats for inspirational posts.
+    
+    Args:
+        username: GitHub username
+        token: Optional user PAT for authenticated requests
+        
+    Returns:
+        dict with public_repos, followers, location, html_url, login
+        
+    MULTI-TENANT: Accepts user token for per-user API calls.
+    """
+    logger.info(f"Fetching GitHub stats for {username}...")
+    try:
+        url = f"{GITHUB_API}/users/{username}"
+        headers = {'Accept': 'application/vnd.github.v3+json'}
+        
+        if token:
+            headers['Authorization'] = f'token {token}'
+        else:
+            app_token = os.getenv('GITHUB_TOKEN')
+            if app_token:
+                headers['Authorization'] = f'token {app_token}'
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        # Handle unauthorized token
+        if response.status_code == 401 and 'Authorization' in headers:
+            logger.warning("GitHub token unauthorized, retrying without auth")
+            del headers['Authorization']
+            response = requests.get(url, headers=headers, timeout=10)
+
+        if response.status_code != 200:
+            logger.warning(f"Could not fetch GitHub user info: {response.status_code}")
+            return None
+
+        data = response.json()
+        return {
+            'public_repos': data.get('public_repos', 0),
+            'followers': data.get('followers', 0),
+            'location': data.get('location'),
+            'html_url': data.get('html_url'),
+            'login': data.get('login')
+        }
+    except Exception as e:
+        logger.error(f"Error fetching GitHub stats: {e}")
+        return None
+
+
+def get_recent_repo_updates(username: str, token: str = None, hours: int = 24):
+    """
+    Scan user's repositories and return recent updates (pushed_at) within the time window.
+    
+    Args:
+        username: GitHub username
+        token: Optional user PAT for authenticated requests
+        hours: Time window to look back (default 24 hours)
+        
+    Returns:
+        List of activity dicts, or None on error
+        
+    MULTI-TENANT: Accepts user token for per-user API calls.
+    """
+    logger.info(f"Scanning repos for recent pushes for {username}...")
+    try:
+        url = f"{GITHUB_API}/users/{username}/repos?per_page=100&type=owner"
+        headers = {'Accept': 'application/vnd.github.v3+json'}
+        
+        if token:
+            headers['Authorization'] = f'token {token}'
+        else:
+            app_token = os.getenv('GITHUB_TOKEN')
+            if app_token:
+                headers['Authorization'] = f'token {app_token}'
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code != 200:
+            logger.warning(f"Could not fetch repos: {response.status_code}")
+            return None
+
+        repos = response.json()
+        now_utc = datetime.now(timezone.utc)
+        cutoff = now_utc - timedelta(hours=hours)
+
+        recent = []
+        for r in repos:
+            pushed = r.get('pushed_at')
+            if not pushed:
+                continue
+            
+            try:
+                pushed_dt = datetime.fromisoformat(pushed.replace('Z', '+00:00'))
+            except ValueError:
+                continue
+                
+            if pushed_dt >= cutoff:
+                repo_name = r.get('name')
+                full_repo = r.get('full_name')
+                
+                # Try to get latest commit info
+                commit_url = f"{GITHUB_API}/repos/{full_repo}/commits?per_page=1"
+                c_resp = requests.get(commit_url, headers=headers, timeout=10)
+                
+                if c_resp.status_code == 200:
+                    commits = c_resp.json()
+                    if commits:
+                        commit = commits[0]
+                        commit_time = commit.get('commit', {}).get('author', {}).get('date')
+                        try:
+                            commit_dt = datetime.fromisoformat(commit_time.replace('Z', '+00:00'))
+                            delta = now_utc - commit_dt
+                            hours_ago = int(delta.total_seconds() // 3600)
+                            when_text = f"{hours_ago} hour{'s' if hours_ago != 1 else ''} ago" if hours_ago >= 1 else f"{max(1,int(delta.total_seconds()//60))} minutes ago"
+                        except:
+                            when_text = "recently"
+                        
+                        recent.append({
+                            'type': 'push',
+                            'repo': repo_name,
+                            'full_repo': full_repo,
+                            'commits': 1,
+                            'date': when_text
+                        })
+                else:
+                    delta = now_utc - pushed_dt
+                    hours_ago = int(delta.total_seconds() // 3600)
+                    when_text = f"{hours_ago} hour{'s' if hours_ago != 1 else ''} ago" if hours_ago >= 1 else "recently"
+                    recent.append({
+                        'type': 'push',
+                        'repo': repo_name,
+                        'full_repo': full_repo,
+                        'commits': 1,
+                        'date': when_text
+                    })
+
+        return recent
+    except Exception as e:
+        logger.error(f"Error scanning repos: {e}")
+        return None
+

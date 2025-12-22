@@ -2,15 +2,34 @@ import os
 import random
 from urllib.parse import quote
 import requests
+import logging
 
-# CREDENTIAL CLASSIFICATION: (A) App-level secret OR (C) User-provided via settings
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# CREDENTIAL CLASSIFICATION: (A) App-level secret (fallback for CLI mode)
+# In multi-tenant mode, user-provided keys are passed as parameters
 UNSPLASH_ACCESS_KEY = os.getenv('UNSPLASH_ACCESS_KEY', '')
 
 
-def get_relevant_image(post_content):
-    """Fetch a relevant image from Unsplash based on post content"""
-    if not UNSPLASH_ACCESS_KEY:
-        print("ℹ️  No Unsplash API key set, skipping image fetch")
+def get_relevant_image(post_content: str, unsplash_key: str = None):
+    """
+    Fetch a relevant image from Unsplash based on post content.
+    
+    Args:
+        post_content: The post text to analyze for relevant image keywords
+        unsplash_key: Optional per-user Unsplash access key. Falls back to env var.
+        
+    Returns:
+        bytes: Image data if successful, None otherwise
+        
+    MULTI-TENANT: Accepts user-provided key for per-user isolation.
+    """
+    # Use user-provided key or fall back to app-level key
+    key = unsplash_key or UNSPLASH_ACCESS_KEY
+    
+    if not key:
+        logger.info("No Unsplash API key available, skipping image fetch")
         return None
 
     content_lower = post_content.lower()
@@ -67,11 +86,11 @@ def get_relevant_image(post_content):
             'python programming laptop workspace'
         ])
 
-    print(f"🖼️  Searching for image: '{search_term}'...")
+    logger.info(f"Searching for image: '{search_term}'...")
 
     try:
         url = f"https://api.unsplash.com/photos/random?query={quote(search_term)}&orientation=landscape&content_filter=high"
-        headers = {'Authorization': f'Client-ID {UNSPLASH_ACCESS_KEY}'}
+        headers = {'Authorization': f'Client-ID {key}'}
         response = requests.get(url, headers=headers, timeout=10)
 
         if response.status_code == 200:

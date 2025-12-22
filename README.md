@@ -434,6 +434,66 @@ py tests/verify_phase2_security.py
 | **SQLite storage** | Simple, file-based; no external database dependency |
 | **Clerk for auth** | Handles JWT, sessions, and user management out of the box |
 
+### Multi-Tenant Service Pattern
+
+All services in `services/` follow this pattern for multi-tenant support:
+
+```python
+# services/example_service.py
+
+def service_function(
+    required_params,
+    user_token: str = None,      # User's credential (from token_store)
+    user_key: str = None         # Per-user API key (from settings)
+):
+    # 1. Try user-provided credential
+    credential = user_token or user_key
+    
+    # 2. Fall back to app-level env var (for CLI/single-user mode)
+    if not credential:
+        credential = os.getenv('APP_LEVEL_KEY')
+    
+    # 3. Fail gracefully if neither
+    if not credential:
+        logger.warning("No credential available")
+        return None
+```
+
+**Service Summary:**
+
+| Service | File | User Context Params |
+|---------|------|---------------------|
+| GitHub Activity | `github_activity.py` | `token` (PAT) |
+| LinkedIn Posting | `linkedin_service.py` | `access_token`, `linkedin_user_urn` |
+| AI Generation | `ai_service.py` | `groq_api_key` |
+| Image Fetching | `image_service.py` | `unsplash_key` |
+
+**Code Sharing:**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    CODE SHARING MODEL                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   CLI Bot (bot.py)          Web App (backend/app.py)                │
+│         │                           │                               │
+│         └─────────┬─────────────────┘                               │
+│                   │                                                  │
+│                   ▼                                                  │
+│   ┌─────────────────────────────────────────────────────────────┐   │
+│   │                 SHARED SERVICES (services/)                  │   │
+│   │  github_activity • linkedin_service • ai_service • image    │   │
+│   └─────────────────────────────────────────────────────────────┘   │
+│                   │                                                  │
+│   ┌───────────────┴───────────────┐                                 │
+│   │                               │                                 │
+│   ▼                               ▼                                 │
+│  ENV vars                    token_store.py                         │
+│  (CLI mode)                  (Web mode)                             │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Quick Start
