@@ -50,7 +50,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Install Python dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
           
       # -----------------------------------------------------------------------
       # Step 4: Setup Node.js for TypeScript generation
@@ -74,13 +74,17 @@ jobs:
       - name: Start FastAPI backend
         run: |
           cd backend
-          python app.py &
+          python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
           # Wait for backend to be ready
           echo "Waiting for backend to start..."
-          sleep 10
+          sleep 15
           # Verify backend is responding
           curl --retry 5 --retry-delay 2 --retry-connrefused http://localhost:8000/health || exit 1
           echo "Backend is ready!"
+        env:
+          LINKEDIN_CLIENT_ID: test_client_id
+          LINKEDIN_CLIENT_SECRET: test_client_secret
+          GROQ_API_KEY: test_groq_key
 
       # -----------------------------------------------------------------------
       # Step 7: Backup existing types (if committed)
