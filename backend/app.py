@@ -823,35 +823,19 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
 async def disconnect_github(request: DisconnectRequest):
     """
     Disconnect a user's GitHub OAuth token.
-    
-    Removes the stored GitHub PAT while keeping the username.
-    
-    SECURITY:
-        - User can only disconnect their own account
-        - Only removes GitHub token, not LinkedIn
     """
     try:
-        from services.token_store import get_conn, init_db
-        
-        init_db()
-        conn = get_conn()
-        cur = conn.cursor()
+        from services.db import get_database
+        db = get_database()
         
         # Clear only the GitHub token, keep the rest
-        cur.execute('''
+        await db.execute("""
             UPDATE accounts 
             SET github_access_token = NULL 
-            WHERE user_id = ?
-        ''', (request.user_id,))
+            WHERE user_id = $1
+        """, [request.user_id])
         
-        updated = cur.rowcount > 0
-        conn.commit()
-        conn.close()
-        
-        if updated:
-            return {"success": True, "message": "GitHub disconnected"}
-        else:
-            return {"success": False, "message": "No GitHub connection found"}
+        return {"success": True, "message": "GitHub disconnected"}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
