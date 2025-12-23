@@ -101,20 +101,13 @@ logger.info("All services imported successfully")
 # =============================================================================
 # Import rate limiters to prevent API abuse
 # See services/middleware.py for configuration
-try:
-    from services.middleware import (
-        post_generation_limiter,
-        publish_limiter,
-        api_limiter,
-        RateLimitExceededError
-    )
-    RATE_LIMITING_ENABLED = True
-except ImportError:
-    RATE_LIMITING_ENABLED = False
-    post_generation_limiter = None
-    publish_limiter = None
-    api_limiter = None
-    RateLimitExceededError = Exception
+from services.middleware import (
+    post_generation_limiter,
+    publish_limiter,
+    api_limiter,
+    RateLimitExceededError
+)
+RATE_LIMITING_ENABLED = True
 
 # =============================================================================
 # ENVIRONMENT VALIDATION
