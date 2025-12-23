@@ -344,22 +344,36 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                 </div>
             </div>
 
-            {/* Step indicator */}
+            {/* Step indicator with real-time counts */}
             <div className="flex items-center gap-2 mb-6">
-                {['Scan', 'Generate', 'Publish'].map((s, i) => (
-                    <div key={s} className="flex items-center">
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${(i === 0 && step !== 'idle') ||
-                            (i === 1 && step === 'generated') ||
-                            (i === 2 && posts.some(p => p.status === 'published'))
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                            }`}>
-                            <span>{i + 1}</span>
-                            <span>{s}</span>
-                        </div>
-                        {i < 2 && <span className="mx-2 text-gray-400">→</span>}
-                    </div>
-                ))}
+                {/* Scanned Count */}
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${activities.length > 0
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                    <span className="font-bold">{activities.length}</span>
+                    <span>Scanned</span>
+                </div>
+                <span className="text-gray-400">→</span>
+
+                {/* Generated Count */}
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${posts.length > 0
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                    <span className="font-bold">{posts.length}</span>
+                    <span>Generated</span>
+                </div>
+                <span className="text-gray-400">→</span>
+
+                {/* Published Count */}
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${posts.filter(p => p.status === 'published').length > 0
+                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                    : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                    <span className="font-bold">{posts.filter(p => p.status === 'published').length}</span>
+                    <span>Published</span>
+                </div>
             </div>
 
             {/* Main content based on step */}
@@ -582,6 +596,11 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                 <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
                                     {activity.type}
                                 </span>
+                                {activity.type === 'push' && typeof activity.context?.commits === 'number' && activity.context.commits > 0 && (
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded text-xs font-medium">
+                                        {activity.context.commits} commit{activity.context.commits !== 1 ? 's' : ''}
+                                    </span>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -89,6 +89,55 @@ TONE: Professional, capable, results-oriented, eager to contribute.
 """
 }
 
+# =============================================================================
+# ACTIVITY-SPECIFIC TONE MODIFIERS
+# Each activity type gets a unique voice and focus
+# =============================================================================
+ACTIVITY_TONES = {
+    "push": {
+        "tone": "Energetic and progress-focused",
+        "mood": "Excited about momentum and consistency",
+        "focus": "Celebrate the grind, small wins add up, building in public",
+        "emoji_set": "🚀 ⚡ 💪 🔥 📈",
+        "cta_style": "What's keeping you busy this week?"
+    },
+    "commits": {
+        "tone": "Technical and detail-oriented",
+        "mood": "Thoughtful, reflective on code quality",
+        "focus": "Specific technical improvements, code craftsmanship, lessons learned",
+        "emoji_set": "📝 ⚙️ 🔧 💻 🧠",
+        "cta_style": "How do you approach [specific technique]?"
+    },
+    "pull_request": {
+        "tone": "Collaborative and achievement-oriented",
+        "mood": "Proud of contribution, grateful for collaboration",
+        "focus": "Teamwork, code review, shipping features, problem-solving",
+        "emoji_set": "🔀 🤝 ✅ 🎯 🎉",
+        "cta_style": "What's your code review process like?"
+    },
+    "new_repo": {
+        "tone": "Visionary and launching",
+        "mood": "Excited about new beginnings, ambitious",
+        "focus": "Why this project exists, the problem it solves, future vision",
+        "emoji_set": "✨ 🌟 🏗️ 💡 🚀",
+        "cta_style": "What problem would you love to solve with code?"
+    },
+    "release": {
+        "tone": "Celebratory and milestone-focused",
+        "mood": "Proud accomplishment, grateful for journey",
+        "focus": "What's new, key features, user impact, thank the community",
+        "emoji_set": "🎉 📦 🚀 🙌 ⭐",
+        "cta_style": "Check it out and let me know what you think!"
+    },
+    "generic": {
+        "tone": "Authentic and conversational",
+        "mood": "Genuine sharing, relatable",
+        "focus": "Personal insights, developer journey, learning moments",
+        "emoji_set": "💭 📣 🎨 💼 🌱",
+        "cta_style": "What's on your mind lately?"
+    }
+}
+
 def get_prompt_for_style(style="standard"):
     """Get the full system prompt for a specific style."""
     template = TEMPLATES.get(style, TEMPLATES["standard"])
@@ -109,6 +158,20 @@ MANDATORY:
 - Posts must feel COMPLETE - no cutting off mid-sentence
 - Balance technical insight with accessibility
 - Share learning, not just achievements"""
+
+
+def get_activity_tone_modifier(activity_type: str) -> str:
+    """Get tone modifier text for a specific activity type."""
+    tone_info = ACTIVITY_TONES.get(activity_type, ACTIVITY_TONES["generic"])
+    
+    return f"""\n\nACTIVITY-SPECIFIC TONE:
+- Voice: {tone_info['tone']}
+- Mood: {tone_info['mood']}
+- Focus Areas: {tone_info['focus']}
+- Preferred Emojis: {tone_info['emoji_set']}
+- Suggested CTA: "{tone_info['cta_style']}"
+
+IMPORTANT: Match the emotional energy and focus to this specific activity type. Make it feel natural and authentic."""
 
 
 # Initialize Groq client (guarded)
@@ -147,7 +210,12 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
     system_prompt = get_prompt_for_style(style)
     
     # Format the prompt based on context type
+    activity_type = context_data.get('type', 'generic')
     user_content = ""
+    
+    # Add activity-specific tone modifier to the system prompt
+    activity_tone = get_activity_tone_modifier(activity_type)
+    system_prompt = system_prompt + activity_tone
     
     if context_data.get('type') == 'push':
         commits = context_data.get('commits', 0)
@@ -155,11 +223,11 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
         description = context_data.get('description', '')
         
         user_content = f"""
-        Write a LinkedIn post about my recent coding session.
-        Activity: I pushed {commits} commits to the repository '{repo}'.
+        Write an ENERGETIC LinkedIn post about my coding momentum!
+        Activity: I pushed {commits} commits to '{repo}'.
         Context: The project involves: {description}
-        My Role: I'm actively building and improving this project.
-        Key Takeaway: Consistent progress matters, even small commits add up.
+        Vibe: I'm in the zone, making progress, shipping code.
+        Key Message: Consistency beats perfection. Every commit counts.
         """
         
     elif context_data.get('type') == 'pull_request':
@@ -169,14 +237,16 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
         merged = context_data.get('merged', False)
         
         state_str = "merged" if merged else "opened"
+        achievement = "This is a WIN!" if merged else "Putting my work out there for review."
         
         user_content = f"""
-        Write a LinkedIn post about a Pull Request I just {state_str}.
+        Write a PROUD LinkedIn post about a Pull Request I just {state_str}.
         Repository: {repo}
         PR Title: {title}
         PR Description: {body}
-        Significance: This represents a distinct feature or fix I contributed.
-        Focus: Collaboration, code quality, and shipping features.
+        Achievement: {achievement}
+        Vibe: Collaborative, shipping features, making impact.
+        Key Message: Good things happen when you collaborate and put your code out there.
         """
         
     elif context_data.get('type') == 'new_repo':
@@ -185,12 +255,12 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
         language = context_data.get('language', 'Code')
         
         user_content = f"""
-        Write a LinkedIn post about a new project I just started.
+        Write an EXCITED LinkedIn post about a brand new project I'm launching!
         Project Name: {repo}
         Description: {description}
-        Main Language/Tech: {language}
-        Goal: I'm starting this from scratch to solve a problem/learn something new.
-        Excitement: High - the beginning of a new journey.
+        Main Tech Stack: {language}
+        Vibe: New beginnings, I'm building something from scratch!
+        Key Message: Every great project starts with a single commit. This is day one.
         """
         
     else:

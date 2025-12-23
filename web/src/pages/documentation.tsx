@@ -24,11 +24,11 @@ export default function Documentation() {
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
       </div>
-      <SEOHead 
+      <SEOHead
         title="Documentation - LinkedIn Post Bot"
         description="Complete guide to setting up and using LinkedIn Post Bot"
       />
-      
+
       <header className="relative bg-white/5 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
@@ -42,13 +42,13 @@ export default function Documentation() {
             </span>
           </Link>
           <div className="flex items-center gap-4">
-            <button onClick={() => router.back()} className="text-gray-600 hover:text-gray-900 font-medium">← Back</button>
+            <button onClick={() => router.back()} className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium">← Back</button>
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid lg:grid-cols-4 gap-8">
           <aside className="lg:col-span-1">
             <div className="bg-white/10 rounded-2xl p-6 shadow-lg border border-white/10 sticky top-6">
@@ -58,9 +58,8 @@ export default function Documentation() {
                   <button
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                      activeSection === section.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left px-4 py-2 rounded-lg transition-all ${activeSection === section.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10'
+                      }`}
                   >
                     <span className="mr-2">{section.icon}</span>{section.title}
                   </button>
@@ -71,79 +70,79 @@ export default function Documentation() {
 
           <main className="lg:col-span-3">
             <div className="bg-white/10 rounded-2xl p-8 md:p-12 shadow-lg border border-white/10">
-              
+
               {activeSection === 'getting-started' && (
                 <div className="prose max-w-none">
-                  <h1 className="text-4xl font-bold text-gray-900 mb-6">🚀 Getting Started</h1>
-                  
-                  <div className="bg-blue-50 border-l-4 border-blue-600 p-6 mb-6">
-                    <p className="text-blue-900 font-medium">Welcome! This guide will help you set up LinkedIn Post Bot in about 10 minutes.</p>
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">🚀 Getting Started</h1>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600 p-6 mb-6">
+                    <p className="text-blue-900 dark:text-blue-200 font-medium">Welcome! This guide will help you set up LinkedIn Post Bot in about 10 minutes.</p>
                   </div>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">What You'll Need</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">What You'll Need</h2>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <span className="text-2xl mr-2">🔗</span>
-                        <h3 className="font-semibold">LinkedIn Developer App</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">LinkedIn Developer App</h3>
                       </div>
-                      <p className="text-sm text-gray-600">Required for posting to LinkedIn</p>
-                      <p className="text-xs text-green-600 mt-1">✓ Free to create</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Required for posting to LinkedIn</p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Free to create</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <span className="text-2xl mr-2">🤖</span>
-                        <h3 className="font-semibold">Groq API Key</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Groq API Key</h3>
                       </div>
-                      <p className="text-sm text-gray-600">Powers AI post generation</p>
-                      <p className="text-xs text-green-600 mt-1">✓ Free tier available</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Powers AI post generation</p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Free tier available</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <span className="text-2xl mr-2">🐙</span>
-                        <h3 className="font-semibold">GitHub Username</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">GitHub Username</h3>
                       </div>
-                      <p className="text-sm text-gray-600">To track your coding activity</p>
-                      <p className="text-xs text-green-600 mt-1">✓ Your existing account</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">To track your coding activity</p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ Your existing account</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="flex items-center mb-2">
                         <span className="text-2xl mr-2">📸</span>
-                        <h3 className="font-semibold">Unsplash Key (Optional)</h3>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">Unsplash Key (Optional)</h3>
                       </div>
-                      <p className="text-sm text-gray-600">For adding images to posts</p>
-                      <p className="text-xs text-gray-400 mt-1">○ Optional</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">For adding images to posts</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">○ Optional</p>
                     </div>
                   </div>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Quick Setup Steps</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Quick Setup Steps</h2>
                   <div className="space-y-4">
-                    <div className="flex items-start bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-start bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
                       <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-4 flex-shrink-0 font-bold">1</span>
                       <div>
-                        <strong className="text-gray-900">Create LinkedIn Developer App</strong>
-                        <p className="text-gray-600 text-sm">Get Client ID and Secret from LinkedIn</p>
+                        <strong className="text-gray-900 dark:text-white">Create LinkedIn Developer App</strong>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Get Client ID and Secret from LinkedIn</p>
                       </div>
                     </div>
-                    <div className="flex items-start bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-start bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
                       <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-4 flex-shrink-0 font-bold">2</span>
                       <div>
-                        <strong className="text-gray-900">Get Groq API Key</strong>
-                        <p className="text-gray-600 text-sm">Free account at console.groq.com</p>
+                        <strong className="text-gray-900 dark:text-white">Get Groq API Key</strong>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Free account at console.groq.com</p>
                       </div>
                     </div>
-                    <div className="flex items-start bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-start bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
                       <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-4 flex-shrink-0 font-bold">3</span>
                       <div>
-                        <strong className="text-gray-900">Connect in Settings</strong>
-                        <p className="text-gray-600 text-sm">Enter credentials and connect accounts</p>
+                        <strong className="text-gray-900 dark:text-white">Connect in Settings</strong>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Enter credentials and connect accounts</p>
                       </div>
                     </div>
-                    <div className="flex items-start bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-start bg-gray-50 dark:bg-white/5 p-4 rounded-lg">
                       <span className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center mr-4 flex-shrink-0 font-bold">4</span>
                       <div>
-                        <strong className="text-gray-900">Start Creating Posts!</strong>
-                        <p className="text-gray-600 text-sm">Generate AI posts from your GitHub activity</p>
+                        <strong className="text-gray-900 dark:text-white">Start Creating Posts!</strong>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">Generate AI posts from your GitHub activity</p>
                       </div>
                     </div>
                   </div>
@@ -152,26 +151,26 @@ export default function Documentation() {
 
               {activeSection === 'linkedin-setup' && (
                 <div className="prose max-w-none">
-                  <h1 className="text-4xl font-bold text-gray-900 mb-6">🔗 LinkedIn Developer Setup</h1>
-                  
-                  <div className="bg-yellow-50 border-l-4 border-yellow-600 p-6 mb-6">
-                    <p className="text-yellow-900"><strong>Important:</strong> Follow these steps exactly to avoid OAuth errors.</p>
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-6">🔗 LinkedIn Developer Setup</h1>
+
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-600 p-6 mb-6">
+                    <p className="text-yellow-900 dark:text-yellow-200"><strong>Important:</strong> Follow these steps exactly to avoid OAuth errors.</p>
                   </div>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Step 1: Create a LinkedIn App</h2>
-                  <ol className="space-y-4 text-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Step 1: Create a LinkedIn App</h2>
+                  <ol className="space-y-4 text-gray-700 dark:text-gray-300">
                     <li className="flex items-start">
-                      <span className="bg-gray-200 text-gray-700 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">1</span>
+                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">1</span>
                       <div>
                         Go to <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">LinkedIn Developers</a> and sign in
                       </div>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-gray-200 text-gray-700 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">2</span>
+                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">2</span>
                       <div>Click <strong>"Create app"</strong> button</div>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-gray-200 text-gray-700 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">3</span>
+                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">3</span>
                       <div>
                         Fill in the required fields:
                         <ul className="mt-2 ml-4 text-sm">
@@ -183,16 +182,16 @@ export default function Documentation() {
                       </div>
                     </li>
                     <li className="flex items-start">
-                      <span className="bg-gray-200 text-gray-700 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">4</span>
+                      <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">4</span>
                       <div>Click <strong>"Create app"</strong></div>
                     </li>
                   </ol>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Step 2: Add Required Products</h2>
-                  <div className="bg-red-50 border-l-4 border-red-600 p-6 mb-4">
-                    <p className="text-red-900"><strong>Critical:</strong> You MUST add these products or OAuth will fail!</p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Step 2: Add Required Products</h2>
+                  <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-600 p-6 mb-4">
+                    <p className="text-red-900 dark:text-red-200"><strong>Critical:</strong> You MUST add these products or OAuth will fail!</p>
                   </div>
-                  <ol className="space-y-3 text-gray-700">
+                  <ol className="space-y-3 text-gray-700 dark:text-gray-300">
                     <li>1. Go to the <strong>"Products"</strong> tab in your app</li>
                     <li>2. Find and request access to:
                       <ul className="mt-2 ml-6 space-y-2">
@@ -209,32 +208,32 @@ export default function Documentation() {
                     <li>3. Wait for approval (usually instant for these products)</li>
                   </ol>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Step 3: Configure OAuth Settings</h2>
-                  <ol className="space-y-3 text-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Step 3: Configure OAuth Settings</h2>
+                  <ol className="space-y-3 text-gray-700 dark:text-gray-300">
                     <li>1. Go to the <strong>"Auth"</strong> tab</li>
                     <li>2. Under <strong>"OAuth 2.0 settings"</strong>, add this redirect URL:
                       <pre className="bg-gray-900 text-green-400 p-3 rounded-lg mt-2 text-sm overflow-x-auto">http://localhost:8000/auth/linkedin/callback</pre>
                     </li>
                     <li>3. Verify your scopes show:
                       <ul className="mt-2 ml-6 space-y-1 text-sm">
-                        <li>• <code className="bg-gray-100 px-1 rounded">openid</code></li>
-                        <li>• <code className="bg-gray-100 px-1 rounded">profile</code></li>
-                        <li>• <code className="bg-gray-100 px-1 rounded">email</code></li>
-                        <li>• <code className="bg-gray-100 px-1 rounded">w_member_social</code></li>
+                        <li>• <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">openid</code></li>
+                        <li>• <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">profile</code></li>
+                        <li>• <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">email</code></li>
+                        <li>• <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">w_member_social</code></li>
                       </ul>
                     </li>
                   </ol>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Step 4: Get Your Credentials</h2>
-                  <ol className="space-y-3 text-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Step 4: Get Your Credentials</h2>
+                  <ol className="space-y-3 text-gray-700 dark:text-gray-300">
                     <li>1. In the <strong>"Auth"</strong> tab, find <strong>"Application credentials"</strong></li>
                     <li>2. Copy your <strong>Client ID</strong></li>
                     <li>3. Click "Show" and copy your <strong>Client Secret</strong></li>
                     <li>4. Paste both into the Settings page of this app</li>
                   </ol>
 
-                  <div className="bg-green-50 border-l-4 border-green-600 p-6 mt-8">
-                    <p className="text-green-900"><strong>Success!</strong> Once connected, LinkedIn credentials are no longer needed - your OAuth token handles everything.</p>
+                  <div className="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600 p-6 mt-8">
+                    <p className="text-green-900 dark:text-green-200"><strong>Success!</strong> Once connected, LinkedIn credentials are no longer needed - your OAuth token handles everything.</p>
                   </div>
                 </div>
               )}
@@ -242,7 +241,7 @@ export default function Documentation() {
               {activeSection === 'groq-setup' && (
                 <div className="prose max-w-none">
                   <h1 className="text-4xl font-bold text-gray-900 mb-6">🤖 Groq AI Setup</h1>
-                  
+
                   <p className="text-lg text-gray-700 mb-6">Groq provides lightning-fast AI inference for generating your LinkedIn posts.</p>
 
                   <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Get Your Free API Key</h2>
@@ -268,15 +267,15 @@ export default function Documentation() {
                     <li className="flex items-start">
                       <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">5</span>
                       <div>
-                        Copy the key (starts with <code className="bg-gray-100 px-2 py-1 rounded">gsk_</code>)
-                        <p className="text-sm text-red-600 mt-1">⚠️ Save it immediately - you can't see it again!</p>
+                        Copy the key (starts with <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">gsk_</code>)
+                        <p className="text-sm text-red-600 dark:text-red-400 mt-1">⚠️ Save it immediately - you can't see it again!</p>
                       </div>
                     </li>
                   </ol>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Free Tier Limits</h2>
-                  <div className="bg-gray-50 rounded-lg p-6">
-                    <ul className="space-y-2 text-gray-700">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">Free Tier Limits</h2>
+                  <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6">
+                    <ul className="space-y-2 text-gray-700 dark:text-gray-300">
                       <li>✓ 14,400 requests per day</li>
                       <li>✓ 30 requests per minute</li>
                       <li>✓ Access to Llama 3.3 70B model</li>
@@ -289,44 +288,44 @@ export default function Documentation() {
               {activeSection === 'github-setup' && (
                 <div className="prose max-w-none">
                   <h1 className="text-4xl font-bold text-gray-900 mb-6">🐙 GitHub Setup</h1>
-                  
+
                   <p className="text-lg text-gray-700 mb-6">We use your GitHub activity to generate relevant, authentic LinkedIn posts.</p>
 
                   <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Required: Your Username</h2>
                   <p className="text-gray-700 mb-4">Simply enter your GitHub username in Settings. That's it!</p>
-                  
+
                   <div className="bg-gray-50 rounded-lg p-6">
                     <p className="text-sm text-gray-600 mb-2">Your username is the part after github.com/</p>
                     <code className="bg-gray-900 text-green-400 px-4 py-2 rounded block">github.com/<strong>your-username</strong></code>
                   </div>
 
-                  <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">What We Track</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-4">What We Track</h2>
                   <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="text-2xl mb-2">🚀</div>
-                      <h3 className="font-semibold">Push Events</h3>
-                      <p className="text-sm text-gray-600">Your code commits</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Push Events</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Your code commits</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="text-2xl mb-2">🔀</div>
-                      <h3 className="font-semibold">Pull Requests</h3>
-                      <p className="text-sm text-gray-600">PRs opened and merged</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Pull Requests</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">PRs opened and merged</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="text-2xl mb-2">✨</div>
-                      <h3 className="font-semibold">Releases</h3>
-                      <p className="text-sm text-gray-600">New version releases</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Releases</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">New version releases</p>
                     </div>
-                    <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-4">
                       <div className="text-2xl mb-2">📦</div>
-                      <h3 className="font-semibold">Repositories</h3>
-                      <p className="text-sm text-gray-600">New repos created</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">Repositories</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">New repos created</p>
                     </div>
                   </div>
 
                   <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Optional: GitHub Token</h2>
                   <p className="text-gray-700 mb-4">Without a token, API is limited to 60 requests/hour. With a token: 5,000/hour.</p>
-                  
+
                   <div className="bg-blue-50 border-l-4 border-blue-600 p-6">
                     <p className="text-blue-900">For most users, the free limit is sufficient. Only add a token if you're hitting rate limits.</p>
                   </div>
@@ -336,7 +335,7 @@ export default function Documentation() {
               {activeSection === 'unsplash-setup' && (
                 <div className="prose max-w-none">
                   <h1 className="text-4xl font-bold text-gray-900 mb-6">📸 Unsplash Setup (Optional)</h1>
-                  
+
                   <p className="text-lg text-gray-700 mb-6">Add relevant images to your posts automatically. This is completely optional.</p>
 
                   <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Get Your Free Access Key</h2>
@@ -361,9 +360,9 @@ export default function Documentation() {
                     </li>
                   </ol>
 
-                  <div className="bg-gray-50 rounded-lg p-6 mt-6">
-                    <h3 className="font-semibold text-gray-900 mb-2">Free Tier</h3>
-                    <p className="text-gray-600">50 requests per hour - more than enough for typical usage!</p>
+                  <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 mt-6">
+                    <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Free Tier</h3>
+                    <p className="text-gray-600 dark:text-gray-400">50 requests per hour - more than enough for typical usage!</p>
                   </div>
                 </div>
               )}
@@ -371,28 +370,28 @@ export default function Documentation() {
               {activeSection === 'using-dashboard' && (
                 <div className="prose max-w-none">
                   <h1 className="text-4xl font-bold text-gray-900 mb-6">📊 Using the Dashboard</h1>
-                  
+
                   <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4">Dashboard Features</h2>
-                  
+
                   <div className="space-y-6">
                     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
                       <h3 className="font-semibold text-gray-900 mb-2">📝 Post Editor</h3>
                       <p className="text-gray-700">Enter context about your coding activity and generate AI-powered posts.</p>
                     </div>
 
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-                      <h3 className="font-semibold text-gray-900 mb-2">🐙 GitHub Activity Feed</h3>
-                      <p className="text-gray-700">Click on any recent activity to auto-populate the post context.</p>
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">🐙 GitHub Activity Feed</h3>
+                      <p className="text-gray-700 dark:text-gray-300">Click on any recent activity to auto-populate the post context.</p>
                     </div>
 
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-                      <h3 className="font-semibold text-gray-900 mb-2">👁️ Live Preview</h3>
-                      <p className="text-gray-700">See exactly how your post will look before publishing.</p>
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">👁️ Live Preview</h3>
+                      <p className="text-gray-700 dark:text-gray-300">See exactly how your post will look before publishing.</p>
                     </div>
 
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
-                      <h3 className="font-semibold text-gray-900 mb-2">📊 Stats</h3>
-                      <p className="text-gray-700">Track your monthly posts, drafts, and publishing history.</p>
+                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-6">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">📊 Stats</h3>
+                      <p className="text-gray-700 dark:text-gray-300">Track your monthly posts, drafts, and publishing history.</p>
                     </div>
                   </div>
                 </div>
@@ -401,7 +400,7 @@ export default function Documentation() {
               {activeSection === 'troubleshooting' && (
                 <div className="prose max-w-none">
                   <h1 className="text-4xl font-bold text-gray-900 mb-6">🔧 Troubleshooting</h1>
-                  
+
                   <div className="space-y-6">
                     <div className="bg-red-50 border-l-4 border-red-600 p-6">
                       <h3 className="font-semibold text-red-900 mb-2">401 Unauthorized Error</h3>
@@ -460,7 +459,7 @@ export default function Documentation() {
             </div>
           </main>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }

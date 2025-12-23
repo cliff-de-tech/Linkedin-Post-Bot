@@ -263,6 +263,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# =============================================================================
+# ROUTER IMPORTS
+# =============================================================================
+# Import modular routers for cleaner code organization
+try:
+    from routes.auth import router as auth_router
+    from routes.feedback import router as feedback_router
+    from routes.posts import router as posts_router
+    from routes.webhooks import router as webhooks_router
+    
+    # Mount routers
+    app.include_router(auth_router)  # /auth/* endpoints
+    app.include_router(feedback_router)  # /api/feedback/* endpoints
+    app.include_router(posts_router)  # /generate-preview, /publish
+    app.include_router(webhooks_router)  # /webhooks/* endpoints (Clerk, etc.)
+    
+    ROUTERS_ENABLED = True
+    print("✅ Modular routers loaded successfully")
+except ImportError as e:
+    ROUTERS_ENABLED = False
+    print(f"⚠️ Routers not loaded (using legacy endpoints): {e}")
+
 
 class GenerateRequest(BaseModel):
     context: dict
@@ -1200,6 +1222,10 @@ async def scan_github_activity(req: ScanRequest):
             }
             target_type = type_mapping.get(scan_activity_type, scan_activity_type)
             filtered_activities = [a for a in all_recent_activities if a.get('type') == target_type]
+        
+        # FREE TIER LIMIT: Cap at 10 activities (aligns with 10 posts/day limit)
+        if user_tier == 'free':
+            filtered_activities = filtered_activities[:10]
         
         return {
             "success": True,

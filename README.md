@@ -12,7 +12,6 @@
 
 ---
 
-
 ## Why This Tool Exists
 
 Most developers are active on GitHub but invisible on LinkedIn. Writing engaging posts takes time, and consistency is hard. This tool bridges the gap by:
@@ -58,6 +57,8 @@ It's built for developers who want to grow their professional presence without s
 - **Dashboard**: Real-time stats, post history, GitHub activity feed
 - **Bot Mode Panel**: One-click workflow: Scan → Generate → Review → Publish
 - **Activity Filters**: Filter by time range (1–30 days) and type (Push, PR, Commits, etc.)
+- **Free Tier Limits**: Scanned activities capped at 10 to match daily post quota
+- **Commit Count Badges**: Push events display commit counts (e.g., "3 commits")
 - **Settings Management**: Individual save buttons per credential, masked secrets
 - **Dark/Light Mode**: Full theme support across all pages
 - **Keyboard Shortcuts**: Ctrl+Enter to publish, Escape to close modals
@@ -155,6 +156,7 @@ Every user's data is strictly isolated using Clerk user IDs as tenant keys:
 ```
 
 **Implementation Details:**
+
 - `services/token_store.py`: All queries include `WHERE user_id=?`
 - `services/user_settings.py`: Tenant-scoped preference storage
 - No admin endpoints expose cross-tenant data
@@ -177,6 +179,7 @@ fernet = Fernet(ENCRYPTION_KEY.encode())
 ```
 
 **Environment Behavior:**
+
 | Environment | `ENCRYPTION_KEY` Present | Behavior |
 |-------------|-------------------------|----------|
 | Production (`ENV=production`) | ✅ Yes | Encrypt/decrypt normally |
@@ -185,6 +188,7 @@ fernet = Fernet(ENCRYPTION_KEY.encode())
 | Development | ❌ No | ⚠️ Warning logged, plaintext allowed |
 
 **Generate a key:**
+
 ```bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
@@ -249,6 +253,7 @@ Complete flow from storage to internal use:
 The app connects to GitHub in two modes:
 
 **1. Public Mode (Default)**
+
 | Aspect | Details |
 |--------|---------|
 | **Requires** | Only `github_username` |
@@ -259,6 +264,7 @@ The app connects to GitHub in two modes:
 | **Privacy** | No access to private repositories |
 
 **2. Authenticated Mode (Optional)**
+
 | Aspect | Details |
 |--------|---------|
 | **Requires** | User-provided Personal Access Token (PAT) |
@@ -269,6 +275,7 @@ The app connects to GitHub in two modes:
 | **Privacy** | Access to private repos for post generation |
 
 **Security Guarantees:**
+
 - ✅ GitHub PAT is **encrypted at rest** in `backend_tokens.db`
 - ✅ PAT is **never exposed** to frontend components
 - ✅ PAT is used **only** for fetching activity to generate posts
@@ -309,6 +316,7 @@ The frontend **NEVER** receives sensitive data:
 ```
 
 **API Endpoints:**
+
 | Endpoint | Returns |
 |----------|---------|
 | `GET /api/connection-status/{user_id}` | `{linkedin_connected, github_connected, github_username}` |
@@ -316,6 +324,7 @@ The frontend **NEVER** receives sensitive data:
 | `POST /api/settings` | Accepts only: `user_id`, `github_username`, `onboarding_complete` |
 
 **No credential input fields exist in:**
+
 - ✅ Settings page
 - ✅ Onboarding flow
 - ✅ Dashboard
@@ -342,7 +351,8 @@ py tests/verify_phase2_security.py
 # Expected output: 6/6 tests passed
 ```
 
-### Security Tests Include:
+### Security Tests Include
+
 | Test | Description |
 |------|-------------|
 | `encryption_production` | Verifies fail-fast when `ENCRYPTION_KEY` missing in production |
@@ -572,6 +582,7 @@ New users go through a simple 4-step setup:
 ```
 
 **What's NOT collected:**
+
 - ❌ LinkedIn API secrets (server-managed)
 - ❌ Groq API keys (server-managed)
 - ❌ Unsplash keys (server-managed)
@@ -582,6 +593,7 @@ New users go through a simple 4-step setup:
 The settings page (`/settings`) shows connection status only—no credential input:
 
 **Features:**
+
 - ✅ LinkedIn connection status (Connected / Not Connected)
 - ✅ GitHub username display and edit
 - ✅ GitHub OAuth status (for private repos)
@@ -590,6 +602,7 @@ The settings page (`/settings`) shows connection status only—no credential inp
 - ✅ Token expiry date display
 
 **Not Displayed:**
+
 - ❌ Access tokens
 - ❌ Refresh tokens
 - ❌ API keys
@@ -646,6 +659,7 @@ PostBot ensures each user's data is **strictly isolated** and posts are generate
 ```
 
 **GitHub Activity:**
+
 | Scope | How It's Enforced |
 |-------|-------------------|
 | Username | Passed per-request, never shared |
@@ -653,6 +667,7 @@ PostBot ensures each user's data is **strictly isolated** and posts are generate
 | API Calls | Scoped to that user's repos/events only |
 
 **AI Generation:**
+
 | Aspect | Implementation |
 |--------|----------------|
 | API Key | App-level `GROQ_API_KEY` (or user-provided) |
@@ -660,6 +675,7 @@ PostBot ensures each user's data is **strictly isolated** and posts are generate
 | Context | Never sees other users' activities |
 
 **Unsplash Images:**
+
 | Aspect | Implementation |
 |--------|----------------|
 | API Key | App-level `UNSPLASH_ACCESS_KEY` |
@@ -667,6 +683,7 @@ PostBot ensures each user's data is **strictly isolated** and posts are generate
 | User Secrets | Not used – purely content-driven |
 
 **Why This Matters:**
+
 1. ✅ **No cross-user data leakage** – Each API call includes only that user's identifiers
 2. ✅ **Posts are authentic** – Generated from real user activity, not synthetic data
 3. ✅ **Shared services are stateless** – AI and image services don't retain user context
@@ -680,6 +697,7 @@ The FastAPI backend provides OpenAPI documentation at stable URLs:
 | `/redoc` | ReDoc alternative documentation |
 
 **Local development:**
+
 - OpenAPI spec: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
 - Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
 - ReDoc: [http://localhost:8000/redoc](http://localhost:8000/redoc)
@@ -736,6 +754,7 @@ The web app (`web/` + `backend/`) is designed for multi-user SaaS deployment:
 | **Multi-User** | ✅ Full tenant isolation |
 
 **Configuration:**
+
 ```bash
 # Backend .env
 LINKEDIN_CLIENT_ID=...      # Your LinkedIn app
@@ -763,6 +782,7 @@ The standalone `bot.py` is designed for personal/scheduled use:
 | **Multi-User** | ❌ Single user only |
 
 **Configuration:**
+
 ```bash
 # .env for CLI mode
 LINKEDIN_ACCESS_TOKEN=...   # Your personal token
@@ -811,17 +831,20 @@ CLI (bot.py)                Web (backend/app.py)
 ## Roadmap
 
 ### 🎯 Short Term (Next 2–4 weeks)
+
 - [ ] Scheduled posting queue (time-delayed publishing)
 - [ ] Post drafts with save/restore
 - [ ] Export post history to CSV
 
 ### 🚀 Mid Term (1–3 months)
+
 - [ ] Multi-account support (multiple LinkedIn profiles)
 - [ ] AI persona customization (tone, style, hashtags)
 - [ ] Docker deployment package
 - [ ] Basic engagement analytics (post performance)
 
 ### 🌟 Long Term (3–6 months)
+
 - [ ] Mobile companion app (React Native)
 - [ ] Team/agency mode (manage multiple clients)
 - [ ] Content calendar view
@@ -846,6 +869,7 @@ CLI (bot.py)                Web (backend/app.py)
    - Set root directory to `web`
 
 2. **Configure Environment Variables**
+
    ```
    NEXT_PUBLIC_API_URL=https://your-backend-url.onrender.com
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_xxx
@@ -864,6 +888,7 @@ CLI (bot.py)                Web (backend/app.py)
    - Connect your GitHub repo
 
 2. **Configure Build**
+
    ```yaml
    Root Directory: backend
    Build Command: pip install -r requirements.txt
@@ -871,6 +896,7 @@ CLI (bot.py)                Web (backend/app.py)
    ```
 
 3. **Environment Variables**
+
    ```
    LINKEDIN_CLIENT_ID=your_linkedin_client_id
    LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret

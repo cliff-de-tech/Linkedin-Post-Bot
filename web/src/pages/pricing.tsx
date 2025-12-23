@@ -29,7 +29,7 @@ export default function Pricing() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/')}
-              className="text-gray-600 hover:text-gray-900 font-medium"
+              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium"
             >
               ← Back to Home
             </button>
@@ -41,8 +41,8 @@ export default function Pricing() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Header */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">Simple, Transparent Pricing</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include core features.
           </p>
         </div>
@@ -50,14 +50,14 @@ export default function Pricing() {
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Free Tier */}
-          <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:border-blue-300 transition-all">
+          <div className="bg-white dark:bg-white/5 rounded-2xl p-8 shadow-lg border-2 border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-500/50 transition-all">
             <div className="mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Free</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Free</h3>
               <div className="flex items-baseline mb-4">
-                <span className="text-5xl font-bold text-gray-900">$0</span>
-                <span className="text-gray-500 ml-2">/month</span>
+                <span className="text-5xl font-bold text-gray-900 dark:text-white">$0</span>
+                <span className="text-gray-500 dark:text-gray-400 ml-2">/month</span>
               </div>
-              <p className="text-gray-600">Perfect for trying out the service</p>
+              <p className="text-gray-600 dark:text-gray-300">Perfect for trying out the service</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -65,7 +65,7 @@ export default function Pricing() {
                 <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-                <span className="text-gray-700">10 posts per month</span>
+                <span className="text-gray-700 dark:text-gray-300">10 posts per month</span>
               </li>
               <li className="flex items-start">
                 <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -101,7 +101,7 @@ export default function Pricing() {
 
             <button
               onClick={() => router.push('/onboarding')}
-              className="w-full bg-gray-100 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-all"
+              className="w-full bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 dark:hover:bg-white/20 transition-all"
             >
               Get Started Free
             </button>
@@ -187,13 +187,13 @@ export default function Pricing() {
           </div>
 
           {/* Enterprise Tier */}
-          <div className="bg-white rounded-2xl p-8 shadow-lg border-2 border-gray-200 hover:border-purple-300 transition-all">
+          <div className="bg-white dark:bg-white/5 rounded-2xl p-8 shadow-lg border-2 border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-purple-500/50 transition-all">
             <div className="mb-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Enterprise</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Enterprise</h3>
               <div className="flex items-baseline mb-4">
-                <span className="text-5xl font-bold text-gray-900">Custom</span>
+                <span className="text-5xl font-bold text-gray-900 dark:text-white">Custom</span>
               </div>
-              <p className="text-gray-600">For teams and organizations</p>
+              <p className="text-gray-600 dark:text-gray-300">For teams and organizations</p>
             </div>
 
             <ul className="space-y-4 mb-8">
@@ -240,27 +240,27 @@ export default function Pricing() {
 
         {/* FAQ */}
         <div className="mt-24 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-12">Frequently Asked Questions</h2>
 
           <div className="space-y-6">
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              <h3 className="font-semibold text-gray-900 mb-2">Can I upgrade or downgrade my plan?</h3>
-              <p className="text-gray-600">Yes! You can change your plan at any time. Changes take effect immediately.</p>
+            <div className="bg-white dark:bg-white/5 rounded-lg p-6 shadow-md dark:border dark:border-white/10">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Can I upgrade or downgrade my plan?</h3>
+              <p className="text-gray-600 dark:text-gray-300">Yes! You can change your plan at any time. Changes take effect immediately.</p>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              <h3 className="font-semibold text-gray-900 mb-2">What payment methods do you accept?</h3>
-              <p className="text-gray-600">We accept all major credit cards, PayPal, and wire transfers for Enterprise plans.</p>
+            <div className="bg-white dark:bg-white/5 rounded-lg p-6 shadow-md dark:border dark:border-white/10">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">What payment methods do you accept?</h3>
+              <p className="text-gray-600 dark:text-gray-300">We accept all major credit cards, PayPal, and wire transfers for Enterprise plans.</p>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              <h3 className="font-semibold text-gray-900 mb-2">Is there a free trial?</h3>
-              <p className="text-gray-600">Yes! The Free plan is available forever. Pro plans include a 14-day free trial.</p>
+            <div className="bg-white dark:bg-white/5 rounded-lg p-6 shadow-md dark:border dark:border-white/10">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Is there a free trial?</h3>
+              <p className="text-gray-600 dark:text-gray-300">Yes! The Free plan is available forever. Pro plans include a 14-day free trial.</p>
             </div>
 
-            <div className="bg-white rounded-lg p-6 shadow-md">
-              <h3 className="font-semibold text-gray-900 mb-2">Can I cancel anytime?</h3>
-              <p className="text-gray-600">Absolutely. No long-term contracts. Cancel your subscription anytime from your dashboard.</p>
+            <div className="bg-white dark:bg-white/5 rounded-lg p-6 shadow-md dark:border dark:border-white/10">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Can I cancel anytime?</h3>
+              <p className="text-gray-600 dark:text-gray-300">Absolutely. No long-term contracts. Cancel your subscription anytime from your dashboard.</p>
             </div>
           </div>
         </div>

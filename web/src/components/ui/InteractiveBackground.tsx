@@ -55,7 +55,7 @@ export default function InteractiveBackground({ className = '' }: InteractiveBac
                 this.vx = 0;
                 this.vy = 0;
                 this.color = color;
-                this.size = 1.6; // Slightly larger particles
+                this.size = 1.6; // Reduced particle size
             }
 
             draw(context: CanvasRenderingContext2D) {
@@ -187,7 +187,7 @@ export default function InteractiveBackground({ className = '' }: InteractiveBac
 
             particles = [];
             for (let i = 0; i < particleCount; i++) {
-                const defaultColor = Math.random() > 0.5 ? 'rgba(147, 51, 234, 0.4)' : 'rgba(59, 130, 246, 0.4)';
+                const defaultColor = Math.random() > 0.5 ? 'rgba(147, 51, 234, 0.15)' : 'rgba(59, 130, 246, 0.15)';
                 particles.push(new Particle(0, 0, defaultColor));
             }
         };
@@ -283,7 +283,7 @@ export default function InteractiveBackground({ className = '' }: InteractiveBac
     return (
         <canvas
             ref={canvasRef}
-            className={`fixed inset-0 pointer-events-none z-0 bg-transparent ${className}`}
+            className={`fixed inset-0 pointer-events-none z-0 bg-transparent opacity-[0.055] ${className}`}
         />
     );
 }
