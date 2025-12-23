@@ -369,7 +369,8 @@ py tests/verify_phase2_security.py
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS |
-| **Backend** | Python 3.10+, FastAPI, SQLite |
+| **Backend** | Python 3.10+, FastAPI, Gunicorn + Uvicorn |
+| **Database** | PostgreSQL (asyncpg) / SQLite (development) |
 | **Authentication** | Clerk (frontend), JWT verification (backend) |
 | **AI** | Groq LLM (llama3-70b-8192) |
 | **APIs** | LinkedIn OAuth, GitHub REST API, Unsplash |
@@ -441,8 +442,9 @@ py tests/verify_phase2_security.py
 | **Frontend/Backend split** | Clear separation allows independent deployment (Vercel + Railway) |
 | **Services layer** | Business logic isolated from API routes; reusable by CLI bot |
 | **Per-user credentials** | Multi-tenant by design; users bring their own API keys |
-| **SQLite storage** | Simple, file-based; no external database dependency |
+| **PostgreSQL (prod)** | Async with asyncpg for high concurrency; SQLite fallback for dev |
 | **Clerk for auth** | Handles JWT, sessions, and user management out of the box |
+| **Gunicorn + Uvicorn** | Production-grade ASGI server with multiple workers |
 
 ### Multi-Tenant Service Pattern
 
@@ -892,19 +894,18 @@ CLI (bot.py)                Web (backend/app.py)
    ```yaml
    Root Directory: backend
    Build Command: pip install -r requirements.txt
-   Start Command: uvicorn app:app --host 0.0.0.0 --port $PORT
+   Start Command: gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app --bind 0.0.0.0:$PORT
    ```
 
 3. **Environment Variables**
 
    ```
+   DATABASE_URL=postgresql://user:password@host:5432/dbname
    LINKEDIN_CLIENT_ID=your_linkedin_client_id
    LINKEDIN_CLIENT_SECRET=your_linkedin_client_secret
    GROQ_API_KEY=gsk_your_groq_key
-   GITHUB_USERNAME=your_github_username
+   ENCRYPTION_KEY=your_fernet_encryption_key
    CLERK_ISSUER=https://your-clerk-instance.clerk.accounts.dev
-   TOKEN_DB_PATH=/opt/render/project/src/backend_tokens.db
-   USER_SETTINGS_DB_PATH=/opt/render/project/src/user_settings.db
    ```
 
 4. **Deploy**
@@ -923,16 +924,49 @@ cd backend && railway up
 cd ../web && railway up
 ```
 
-### Docker Deployment (Coming Soon)
+### Docker Deployment
+
+The backend includes a production-ready Dockerfile:
 
 ```dockerfile
-# Dockerfile for backend (backend/Dockerfile)
+# backend/Dockerfile
 FROM python:3.11-slim
+
 WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
 COPY . .
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Create non-root user for security
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8000
+
+# Production: Gunicorn with Uvicorn workers (4 workers)
+CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app:app", "--bind", "0.0.0.0:8000"]
+```
+
+**Build and run:**
+
+```bash
+cd backend
+docker build -t linkedin-post-bot-api .
+docker run -p 8000:8000 \
+  -e DATABASE_URL=postgresql://... \
+  -e GROQ_API_KEY=gsk_... \
+  -e ENCRYPTION_KEY=... \
+  linkedin-post-bot-api
 ```
 
 ---
