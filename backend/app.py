@@ -50,7 +50,13 @@ from services.linkedin_service import post_to_linkedin, upload_image_to_linkedin
 from services.user_settings import get_user_settings, save_user_settings
 
 # Token store
-from services.token_store import get_token_by_user_id, get_all_tokens
+from services.token_store import (
+    get_token_by_user_id,
+    get_all_tokens,
+    get_connection_status,
+    save_github_token,
+    delete_token_by_user_id
+)
 
 # Auth service
 from services.auth_service import (
@@ -108,6 +114,7 @@ from services.middleware import (
     RateLimitExceededError
 )
 RATE_LIMITING_ENABLED = True
+ROUTERS_ENABLED = True
 
 # =============================================================================
 # ENVIRONMENT VALIDATION
