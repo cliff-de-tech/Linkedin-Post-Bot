@@ -21,7 +21,7 @@ export const StatsOverview: React.FC<StatsProps> = ({ stats, loading }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" role="region" aria-label="Dashboard statistics">
             {/* Generated Card */}
-            <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all">
+            <div className="bg-slate-50 dark:bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-gray-600 dark:text-gray-400 font-medium" id="generated-label">Generated Posts</h3>
                     <div className="p-2 bg-purple-50 dark:bg-purple-500/10 rounded-lg" aria-hidden="true">
@@ -65,7 +65,7 @@ export const StatsOverview: React.FC<StatsProps> = ({ stats, loading }) => {
             </div>
 
             {/* Published Card */}
-            <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all">
+            <div className="bg-slate-50 dark:bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-gray-600 dark:text-gray-400 font-medium" id="published-label">Published</h3>
                     <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg" aria-hidden="true">

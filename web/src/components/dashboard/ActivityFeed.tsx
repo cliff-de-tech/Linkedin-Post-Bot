@@ -28,7 +28,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
     if (activities.length === 0) {
         return (
-            <div className="text-center py-10 bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 border-dashed" role="status">
+            <div className="text-center py-10 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 border-dashed" role="status">
                 <div className="text-4xl mb-3" aria-hidden="true">😴</div>
                 <p className="text-gray-900 dark:text-white font-medium">No recent activity</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Push some code to GitHub to see it here!</p>
@@ -45,9 +45,9 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     onClick={() => onSelect(activity)}
                     aria-pressed={selectedActivity === activity.id}
                     aria-label={`Select activity: ${activity.title}`}
-                    className={`group w-full text-left cursor-pointer relative bg-white dark:bg-white/5 border rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${selectedActivity === activity.id
+                    className={`group w-full text-left cursor-pointer relative bg-slate-50 dark:bg-white/5 border rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm ${selectedActivity === activity.id
                         ? 'border-blue-500 ring-1 ring-blue-500 dark:bg-blue-500/10'
-                        : 'border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20'
+                        : 'border-slate-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-white/20'
                         }`}
                     role="listitem"
                 >

@@ -30,6 +30,9 @@ export default function Onboarding() {
 
   // User inputs
   const [githubUsername, setGithubUsername] = useState('');
+  const [savedGithubUsername, setSavedGithubUsername] = useState(''); // Track saved value
+  const [isSavingUsername, setIsSavingUsername] = useState(false);
+  const [isUsernameSaved, setIsUsernameSaved] = useState(false);
   const [linkedinConnected, setLinkedinConnected] = useState(false);
   const [githubOAuthConnected, setGithubOAuthConnected] = useState(false);
 
@@ -49,7 +52,6 @@ export default function Onboarding() {
     const linkedinUrnParam = urlParams.get('linkedin_urn');
 
     if (linkedinSuccess === 'true' && linkedinUrnParam) {
-      localStorage.setItem('linkedin_user_urn', linkedinUrnParam);
       setLinkedinConnected(true);
       showToast.success('LinkedIn connected! 🎉');
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -71,11 +73,9 @@ export default function Onboarding() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
 
-    // Check if already connected from localStorage
-    const storedUrn = localStorage.getItem('linkedin_user_urn');
-    if (storedUrn) {
-      setLinkedinConnected(true);
-    }
+    // Note: We no longer check localStorage for linkedin_user_urn here
+    // Connection status should be determined by the API (checkSettings) to ensure
+    // proper per-user state. localStorage is only used for OAuth callback handling.
   }, []);
 
   // Load existing settings
@@ -88,6 +88,7 @@ export default function Onboarding() {
         if (response.data && !response.data.error) {
           if (response.data.github_username) {
             setGithubUsername(response.data.github_username);
+            setSavedGithubUsername(response.data.github_username); // Track saved value
           }
           if (response.data.linkedin_connected) {
             setLinkedinConnected(true);
@@ -102,6 +103,35 @@ export default function Onboarding() {
     };
     checkSettings();
   }, [isLoaded, userId]);
+
+  // Auto-save GitHub username with debounce (500ms after typing stops)
+  useEffect(() => {
+    // Don't save if empty, no userId, or same as saved value
+    if (!githubUsername.trim() || !userId || githubUsername.trim() === savedGithubUsername) {
+      return;
+    }
+
+    // Reset saved state when typing
+    setIsUsernameSaved(false);
+
+    const timeoutId = setTimeout(async () => {
+      setIsSavingUsername(true);
+      try {
+        await axios.post(`${API_BASE}/api/settings`, {
+          user_id: userId,
+          github_username: githubUsername.trim()
+        });
+        setSavedGithubUsername(githubUsername.trim());
+        setIsUsernameSaved(true);
+      } catch (error) {
+        showToast.error('Failed to save username');
+      } finally {
+        setIsSavingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [githubUsername, userId, savedGithubUsername]);
 
   const handleConnectLinkedIn = async () => {
     if (!userId) {
@@ -207,7 +237,15 @@ export default function Onboarding() {
             </div>
             <span className="font-bold text-xl tracking-tight">PostBot</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/')}
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all"
+            >
+              Home
+            </button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -266,9 +304,28 @@ export default function Onboarding() {
 
               {/* Username Input */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  GitHub Username <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    GitHub Username <span className="text-red-500">*</span>
+                  </label>
+                  {isSavingUsername && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-gray-400">
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                      Saving...
+                    </span>
+                  )}
+                  {!isSavingUsername && isUsernameSaved && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-green-500">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Saved
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute left-4 top-3.5 text-gray-400">github.com/</span>
                   <input
@@ -295,8 +352,8 @@ export default function Onboarding() {
                     </p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${githubOAuthConnected
-                      ? 'bg-green-500/20 text-green-500'
-                      : 'bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400'
+                    ? 'bg-green-500/20 text-green-500'
+                    : 'bg-gray-200 dark:bg-white/10 text-gray-500 dark:text-gray-400'
                     }`}>
                     {githubOAuthConnected ? '✓ Connected' : 'Optional'}
                   </span>

@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import { useUser } from '@clerk/nextjs';
+import { useUser, UserButton } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import SEOHead from '@/components/SEOHead';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -78,11 +78,8 @@ export default function Settings() {
     const linkedinError = urlParams.get('error');
 
     if (linkedinSuccess === 'true') {
-      if (linkedinUrn) {
-        localStorage.setItem('linkedin_user_urn', linkedinUrn);
-      }
       showToast.success('LinkedIn connected!');
-      setShouldRefresh(true);
+      setShouldRefresh(prev => !prev); // Toggle to trigger refresh
       window.history.replaceState({}, document.title, window.location.pathname);
     } else if (linkedinSuccess === 'false') {
       showToast.error(`LinkedIn connection failed: ${linkedinError || 'Unknown error'}`);
@@ -255,6 +252,7 @@ export default function Settings() {
               Back to Dashboard
             </button>
             <ThemeToggle />
+            <UserButton afterSignOutUrl="/" />
           </div>
         </div>
       </header>

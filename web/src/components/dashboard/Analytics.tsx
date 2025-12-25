@@ -34,7 +34,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ data, loading }) => {
 
     if (loading) {
         return (
-            <div className="bg-white dark:bg-white/5 rounded-2xl p-6 border border-gray-100 dark:border-white/10" role="status" aria-label="Loading analytics">
+            <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm" role="status" aria-label="Loading analytics">
                 <div className="animate-pulse space-y-4">
                     <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -48,7 +48,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ data, loading }) => {
     }
 
     return (
-        <div className="bg-white dark:bg-white/5 rounded-2xl p-6 border border-gray-100 dark:border-white/10">
+        <div className="bg-slate-50 dark:bg-white/5 rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Analytics Overview</h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">Last 30 days</span>

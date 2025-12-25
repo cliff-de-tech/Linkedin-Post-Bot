@@ -89,7 +89,8 @@ async def save_token(
             [user_id]
         )
         if row:
-            # Update existing record for this user
+            # Update existing record for this user - use user_id for WHERE clause
+            # because id column may be NULL in some cases
             await db.execute("""
                 UPDATE accounts SET
                     linkedin_user_urn = $1,
@@ -98,9 +99,9 @@ async def save_token(
                     expires_at = $4,
                     scopes = $5,
                     is_encrypted = 1
-                WHERE id = $6
+                WHERE user_id = $6
             """, [linkedin_user_urn, encrypted_access, encrypted_refresh, 
-                  expires_at, scopes, row['id']])
+                  expires_at, scopes, user_id])
             return
     
     # Insert new record or update if linkedin_urn conflicts

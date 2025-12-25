@@ -71,7 +71,7 @@ export const PostPreview: React.FC<PostPreviewProps> = ({ preview, imageUrl, onE
     const isOverLimit = charCount > 3000;
 
     return (
-        <div className="bg-white dark:bg-white/5 rounded-2xl shadow-lg border border-gray-100 dark:border-white/10 p-6 h-full flex flex-col">
+        <div className="bg-slate-50 dark:bg-white/5 rounded-2xl shadow-md border border-slate-200 dark:border-white/10 p-6 h-full flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -91,8 +91,8 @@ export const PostPreview: React.FC<PostPreviewProps> = ({ preview, imageUrl, onE
                         <button
                             onClick={handleCopy}
                             className={`px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-1.5 ${copied
-                                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                    : 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200'
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                : 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200'
                                 }`}
                         >
                             {copied ? (
@@ -117,7 +117,7 @@ export const PostPreview: React.FC<PostPreviewProps> = ({ preview, imageUrl, onE
 
             {/* Post Preview Card */}
             <div
-                className="flex-1 bg-white dark:bg-[#1d2226] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[350px] flex flex-col"
+                className="flex-1 bg-gray-50 dark:bg-[#1d2226] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden min-h-[280px] flex flex-col"
                 style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
             >
                 {preview ? (

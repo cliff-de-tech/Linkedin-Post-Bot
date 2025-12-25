@@ -32,7 +32,7 @@ export const PostHistory: React.FC<PostHistoryProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="mb-8 bg-white dark:bg-white/5 rounded-2xl shadow-lg border border-gray-100 dark:border-white/10 p-6">
+        <div className="mb-8 bg-slate-50 dark:bg-white/5 rounded-2xl shadow-md border border-slate-200 dark:border-white/10 p-6">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Post History</h3>
                 <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" aria-label="Close post history">
