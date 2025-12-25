@@ -1,15 +1,16 @@
 """
-User Data Cleanup Service
+User Data Cleanup Service (Async PostgreSQL/SQLite Compatible)
 
-Handles deletion of all user data across databases when a user:
+Handles deletion of all user data across all tables when a user:
 - Deletes their Clerk account
 - Requests data deletion (GDPR right to erasure)
 
-DATABASES AFFECTED:
-- backend_tokens.db (accounts table) - OAuth tokens
-- user_settings.db (settings table) - User preferences
-- post_history.db (posts table) - Generated/published posts
-- feedback.db (feedback table) - User feedback submissions
+TABLES AFFECTED (all in centralized database):
+- accounts - OAuth tokens
+- user_settings - User preferences
+- post_history - Generated/published posts
+- scheduled_posts - Scheduled posts
+- feedback - User feedback submissions
 
 GDPR COMPLIANCE:
 - Provides complete data erasure functionality
@@ -17,155 +18,95 @@ GDPR COMPLIANCE:
 - Returns count of deleted records for audit
 """
 
-import os
-import sqlite3
-from typing import Dict, Any
+import logging
+from services.db import get_database
 
-# Database paths (same as other services)
-TOKEN_DB_PATH = os.getenv(
-    'TOKEN_DB_PATH', 
-    os.path.join(os.path.dirname(__file__), '..', 'backend_tokens.db')
-)
-
-SETTINGS_DB_PATH = os.getenv(
-    'USER_SETTINGS_DB_PATH',
-    os.path.join(os.path.dirname(__file__), '..', 'user_settings.db')
-)
-
-POST_HISTORY_DB_PATH = os.getenv(
-    'POST_HISTORY_DB_PATH',
-    os.path.join(os.path.dirname(__file__), '..', 'post_history.db')
-)
-
-FEEDBACK_DB_PATH = os.getenv(
-    'FEEDBACK_DB_PATH',
-    os.path.join(os.path.dirname(__file__), '..', 'feedback.db')
-)
+logger = logging.getLogger(__name__)
 
 
-def delete_user_tokens(user_id: str) -> int:
-    """
-    Delete all OAuth tokens for a user.
-    
-    Args:
-        user_id: Clerk user ID
-        
-    Returns:
-        Number of records deleted
-    """
-    if not os.path.exists(TOKEN_DB_PATH):
-        return 0
-    
+async def delete_user_tokens(user_id: str) -> int:
+    """Delete all OAuth tokens for a user from accounts table."""
+    db = get_database()
     try:
-        conn = sqlite3.connect(TOKEN_DB_PATH)
-        cur = conn.cursor()
-        
-        cur.execute('DELETE FROM accounts WHERE user_id = ?', (user_id,))
-        deleted = cur.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"🗑️  Deleted {deleted} token record(s) for user {user_id[:8]}...")
+        result = await db.execute(
+            "DELETE FROM accounts WHERE user_id = :p1", 
+            [user_id]
+        )
+        deleted = result if isinstance(result, int) else 1
+        logger.info(f"🗑️  Deleted {deleted} token record(s) for user {user_id[:8]}...")
         return deleted
     except Exception as e:
-        print(f"⚠️  Error deleting tokens: {e}")
+        logger.error(f"⚠️  Error deleting tokens: {e}")
         return 0
 
 
-def delete_user_settings(user_id: str) -> int:
-    """
-    Delete user settings/preferences.
-    
-    Args:
-        user_id: Clerk user ID
-        
-    Returns:
-        Number of records deleted
-    """
-    if not os.path.exists(SETTINGS_DB_PATH):
-        return 0
-    
+async def delete_user_settings(user_id: str) -> int:
+    """Delete user settings/preferences from user_settings table."""
+    db = get_database()
     try:
-        conn = sqlite3.connect(SETTINGS_DB_PATH)
-        cur = conn.cursor()
-        
-        cur.execute('DELETE FROM settings WHERE user_id = ?', (user_id,))
-        deleted = cur.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"🗑️  Deleted {deleted} settings record(s) for user {user_id[:8]}...")
+        result = await db.execute(
+            "DELETE FROM user_settings WHERE user_id = :p1", 
+            [user_id]
+        )
+        deleted = result if isinstance(result, int) else 1
+        logger.info(f"🗑️  Deleted {deleted} settings record(s) for user {user_id[:8]}...")
         return deleted
     except Exception as e:
-        print(f"⚠️  Error deleting settings: {e}")
+        logger.error(f"⚠️  Error deleting settings: {e}")
         return 0
 
 
-def delete_user_posts(user_id: str) -> int:
-    """
-    Delete post generation history for a user.
-    
-    Args:
-        user_id: Clerk user ID
-        
-    Returns:
-        Number of records deleted
-    """
-    if not os.path.exists(POST_HISTORY_DB_PATH):
-        return 0
-    
+async def delete_user_posts(user_id: str) -> int:
+    """Delete post history for a user from post_history table."""
+    db = get_database()
     try:
-        conn = sqlite3.connect(POST_HISTORY_DB_PATH)
-        cur = conn.cursor()
-        
-        cur.execute('DELETE FROM posts WHERE user_id = ?', (user_id,))
-        deleted = cur.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"🗑️  Deleted {deleted} post record(s) for user {user_id[:8]}...")
+        result = await db.execute(
+            "DELETE FROM post_history WHERE user_id = :p1", 
+            [user_id]
+        )
+        deleted = result if isinstance(result, int) else 1
+        logger.info(f"🗑️  Deleted {deleted} post record(s) for user {user_id[:8]}...")
         return deleted
     except Exception as e:
-        print(f"⚠️  Error deleting posts: {e}")
+        logger.error(f"⚠️  Error deleting posts: {e}")
         return 0
 
 
-def delete_user_feedback(user_id: str) -> int:
-    """
-    Delete feedback submissions for a user.
-    
-    Args:
-        user_id: Clerk user ID
-        
-    Returns:
-        Number of records deleted
-    """
-    if not os.path.exists(FEEDBACK_DB_PATH):
-        return 0
-    
+async def delete_user_scheduled_posts(user_id: str) -> int:
+    """Delete scheduled posts for a user from scheduled_posts table."""
+    db = get_database()
     try:
-        conn = sqlite3.connect(FEEDBACK_DB_PATH)
-        cur = conn.cursor()
-        
-        cur.execute('DELETE FROM feedback WHERE user_id = ?', (user_id,))
-        deleted = cur.rowcount
-        
-        conn.commit()
-        conn.close()
-        
-        print(f"🗑️  Deleted {deleted} feedback record(s) for user {user_id[:8]}...")
+        result = await db.execute(
+            "DELETE FROM scheduled_posts WHERE user_id = :p1", 
+            [user_id]
+        )
+        deleted = result if isinstance(result, int) else 1
+        logger.info(f"🗑️  Deleted {deleted} scheduled post record(s) for user {user_id[:8]}...")
         return deleted
     except Exception as e:
-        print(f"⚠️  Error deleting feedback: {e}")
+        logger.error(f"⚠️  Error deleting scheduled posts: {e}")
         return 0
 
 
-def delete_all_user_data(user_id: str) -> Dict[str, Any]:
+async def delete_user_feedback(user_id: str) -> int:
+    """Delete feedback submissions for a user from feedback table."""
+    db = get_database()
+    try:
+        result = await db.execute(
+            "DELETE FROM feedback WHERE user_id = :p1", 
+            [user_id]
+        )
+        deleted = result if isinstance(result, int) else 1
+        logger.info(f"🗑️  Deleted {deleted} feedback record(s) for user {user_id[:8]}...")
+        return deleted
+    except Exception as e:
+        logger.error(f"⚠️  Error deleting feedback: {e}")
+        return 0
+
+
+async def delete_all_user_data(user_id: str) -> dict:
     """
-    Delete ALL data associated with a user across all databases.
+    Delete ALL data associated with a user across all tables.
     
     This is the main function called by the Clerk webhook handler
     when a user deletes their account.
@@ -174,31 +115,21 @@ def delete_all_user_data(user_id: str) -> Dict[str, Any]:
         user_id: Clerk user ID (e.g., "user_abc123...")
         
     Returns:
-        Dictionary with deletion results:
-        {
-            "success": bool,
-            "user_id": str (masked),
-            "deleted": {
-                "tokens": int,
-                "settings": int,
-                "posts": int,
-                "feedback": int
-            },
-            "total": int
-        }
+        Dictionary with deletion results
     """
-    print(f"\n🧹 Starting complete data deletion for user {user_id[:8]}...")
+    logger.info(f"\n🧹 Starting complete data deletion for user {user_id[:8]}...")
     
     results = {
-        "tokens": delete_user_tokens(user_id),
-        "settings": delete_user_settings(user_id),
-        "posts": delete_user_posts(user_id),
-        "feedback": delete_user_feedback(user_id),
+        "tokens": await delete_user_tokens(user_id),
+        "settings": await delete_user_settings(user_id),
+        "posts": await delete_user_posts(user_id),
+        "scheduled_posts": await delete_user_scheduled_posts(user_id),
+        "feedback": await delete_user_feedback(user_id),
     }
     
     total = sum(results.values())
     
-    print(f"✅ Data deletion complete. Total records deleted: {total}\n")
+    logger.info(f"✅ Data deletion complete. Total records deleted: {total}\n")
     
     return {
         "success": True,

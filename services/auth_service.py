@@ -76,7 +76,7 @@ def get_authorize_url(redirect_uri: str, state: str) -> str:
     return f"https://www.linkedin.com/oauth/v2/authorization?{q}"
 
 
-def exchange_code_for_token(code: str, redirect_uri: str, user_id: str = None) -> dict:
+async def exchange_code_for_token(code: str, redirect_uri: str, user_id: str = None) -> dict:
     """
     Exchange authorization code for access token (OAuth Step 2).
     
@@ -146,7 +146,7 @@ def exchange_code_for_token(code: str, redirect_uri: str, user_id: str = None) -
         
         # Store token securely WITH user_id for multi-tenant isolation
         # SECURITY: Token is stored in SQLite; access is via parameterized queries
-        save_token(linkedin_user_urn, access_token, refresh_token=None, expires_at=expires_at, user_id=user_id)
+        await save_token(linkedin_user_urn, access_token, refresh_token=None, expires_at=expires_at, user_id=user_id)
         
     except Exception as e:
         import traceback
@@ -197,7 +197,7 @@ def get_authorize_url_for_user(client_id: str, redirect_uri: str, state: str) ->
     return f"https://www.linkedin.com/oauth/v2/authorization?{q}"
 
 
-def exchange_code_for_token_with_user(
+async def exchange_code_for_token_with_user(
     client_id: str, 
     client_secret: str, 
     code: str, 
@@ -262,7 +262,7 @@ def exchange_code_for_token_with_user(
     expires_at = int(time.time()) + int(expires_in) if expires_in else None
     
     # Save token with user_id association for multi-tenant isolation
-    save_token(
+    await save_token(
         linkedin_user_urn, 
         access_token, 
         refresh_token=None, 
@@ -324,7 +324,7 @@ def refresh_access_token(refresh_token: str) -> dict:
     }
 
 
-def get_access_token_for_urn(linkedin_user_urn: str, refresh_buffer: int = 60) -> str:
+async def get_access_token_for_urn(linkedin_user_urn: str, refresh_buffer: int = 60) -> str:
     """
     Get a valid access token for a LinkedIn user, refreshing if needed.
     
@@ -344,7 +344,7 @@ def get_access_token_for_urn(linkedin_user_urn: str, refresh_buffer: int = 60) -
     SECURITY: Tokens are refreshed proactively to avoid failed API calls.
     The refresh buffer ensures continuous availability.
     """
-    token_row = get_token_by_urn(linkedin_user_urn)
+    token_row = await get_token_by_urn(linkedin_user_urn)
     if not token_row:
         raise RuntimeError('No token found for this linkedin_user_urn')
 
@@ -362,7 +362,7 @@ def get_access_token_for_urn(linkedin_user_urn: str, refresh_buffer: int = 60) -
         refreshed = refresh_access_token(refresh_token)
         
         # Update stored token with new values
-        save_token(
+        await save_token(
             linkedin_user_urn, 
             refreshed['access_token'], 
             refreshed.get('refresh_token'), 

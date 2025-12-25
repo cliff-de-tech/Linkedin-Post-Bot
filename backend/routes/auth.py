@@ -64,7 +64,7 @@ class AuthRefreshRequest(BaseModel):
 # LINKEDIN OAUTH ENDPOINTS
 # =============================================================================
 @router.get('/linkedin/start')
-def linkedin_start(redirect_uri: str, user_id: str = None):
+async def linkedin_start(redirect_uri: str, user_id: str = None):
     """
     Redirects the user to LinkedIn's authorization page.
     
@@ -87,7 +87,7 @@ def linkedin_start(redirect_uri: str, user_id: str = None):
     # Try to use per-user credentials if user_id provided
     if user_id and get_user_settings:
         try:
-            settings = get_user_settings(user_id)
+            settings = await get_user_settings(user_id)
             if settings and settings.get('linkedin_client_id') and get_authorize_url_for_user:
                 url = get_authorize_url_for_user(
                     settings['linkedin_client_id'],
@@ -107,7 +107,7 @@ def linkedin_start(redirect_uri: str, user_id: str = None):
 
 
 @router.get('/linkedin/callback')
-def linkedin_callback(code: str = None, state: str = None, redirect_uri: str = None):
+async def linkedin_callback(code: str = None, state: str = None, redirect_uri: str = None):
     """
     Exchange code for token and redirect back to frontend.
     
@@ -155,9 +155,9 @@ def linkedin_callback(code: str = None, state: str = None, redirect_uri: str = N
         
         # Use per-user credentials if we have a user_id
         if user_id and get_user_settings and exchange_code_for_token_with_user:
-            settings = get_user_settings(user_id)
+            settings = await get_user_settings(user_id)
             if settings and settings.get('linkedin_client_id') and settings.get('linkedin_client_secret'):
-                result = exchange_code_for_token_with_user(
+                result = await exchange_code_for_token_with_user(
                     settings['linkedin_client_id'],
                     settings['linkedin_client_secret'],
                     code,
@@ -166,14 +166,14 @@ def linkedin_callback(code: str = None, state: str = None, redirect_uri: str = N
                 )
                 if save_user_settings:
                     settings['linkedin_user_urn'] = result.get('linkedin_user_urn')
-                    save_user_settings(user_id, settings)
+                    await save_user_settings(user_id, settings)
         
         # Fallback to global credentials
         if not result:
             if not exchange_code_for_token:
                 return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error=oauth_not_available")
             
-            result = exchange_code_for_token(code, backend_callback_uri, user_id)
+            result = await exchange_code_for_token(code, backend_callback_uri, user_id)
         
         linkedin_urn = result.get("linkedin_user_urn", "")
         return RedirectResponse(f"{frontend_redirect}?linkedin_success=true&linkedin_urn={linkedin_urn}")
@@ -215,7 +215,7 @@ def github_oauth_start(redirect_uri: str, user_id: str):
 
 
 @router.get('/github/callback')
-def github_oauth_callback(code: str = None, state: str = None, redirect_uri: str = None):
+async def github_oauth_callback(code: str = None, state: str = None, redirect_uri: str = None):
     """
     Handle GitHub OAuth callback.
     
@@ -276,13 +276,13 @@ def github_oauth_callback(code: str = None, state: str = None, redirect_uri: str
         
         # Store the token encrypted
         from services.token_store import save_github_token
-        save_github_token(user_id, github_username, access_token)
+        await save_github_token(user_id, github_username, access_token)
         
         # Also update user settings with username
         if save_user_settings and get_user_settings:
-            settings = get_user_settings(user_id) or {}
+            settings = await get_user_settings(user_id) or {}
             settings['github_username'] = github_username
-            save_user_settings(user_id, settings)
+            await save_user_settings(user_id, settings)
         
         return {
             "status": "success", 
@@ -300,12 +300,12 @@ def github_oauth_callback(code: str = None, state: str = None, redirect_uri: str
 # AUTH UTILITY ENDPOINTS
 # =============================================================================
 @router.post("/refresh")
-def refresh_auth(req: AuthRefreshRequest):
+async def refresh_auth(req: AuthRefreshRequest):
     """Check if user has valid LinkedIn connection"""
     if not get_user_settings:
         return {"error": "Settings service not available"}
     try:
-        settings = get_user_settings(req.user_id)
+        settings = await get_user_settings(req.user_id)
         if settings and settings.get("linkedin_user_urn"):
             return {
                 "access_token": "valid",

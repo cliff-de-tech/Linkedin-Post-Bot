@@ -200,10 +200,14 @@ async def get_daily_post_count(user_id: str, user_timezone: str = "UTC") -> int:
     import datetime
     try:
         from zoneinfo import ZoneInfo
-        user_tz = ZoneInfo(user_timezone)
+        # Handle common UTC variants
+        tz_key = user_timezone
+        if tz_key.upper() == "UTC":
+            tz_key = "Etc/UTC"
+        user_tz = ZoneInfo(tz_key)
     except Exception:
-        from zoneinfo import ZoneInfo
-        user_tz = ZoneInfo("UTC")
+        # Fallback to UTC using datetime.timezone
+        user_tz = datetime.timezone.utc
     
     now_local = datetime.datetime.now(user_tz)
     today_start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -246,10 +250,14 @@ async def get_user_usage(user_id: str, tier: str = "free", user_timezone: str = 
     
     try:
         from zoneinfo import ZoneInfo
-        user_tz = ZoneInfo(user_timezone)
+        # Handle common UTC variants
+        tz_key = user_timezone
+        if tz_key.upper() == "UTC":
+            tz_key = "Etc/UTC"
+        user_tz = ZoneInfo(tz_key)
     except Exception:
-        from zoneinfo import ZoneInfo
-        user_tz = ZoneInfo("UTC")
+        # Fallback to UTC using datetime.timezone
+        user_tz = datetime.timezone.utc
     
     now_local = datetime.datetime.now(user_tz)
     tomorrow_midnight = (now_local + datetime.timedelta(days=1)).replace(

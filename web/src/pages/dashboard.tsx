@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { generatePreview, publishPost } from '@/lib/api';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import SEOHead from '@/components/SEOHead';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -430,6 +430,7 @@ export default function Dashboard() {
               <div className="ml-2 border-l border-gray-200 dark:border-white/10 pl-3 flex items-center gap-2">
                 <TierBadge tier={usage?.tier || 'free'} onClick={() => setShowWaitlist(true)} />
                 <ThemeToggle />
+                <UserButton afterSignOutUrl="/" />
               </div>
             </nav>
           </div>

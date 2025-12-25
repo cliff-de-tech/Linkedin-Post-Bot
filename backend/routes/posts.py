@@ -121,7 +121,7 @@ async def generate_preview(
     groq_api_key = None
     if user_id and get_user_settings:
         try:
-            settings = get_user_settings(user_id)
+            settings = await get_user_settings(user_id)
             if settings:
                 groq_api_key = settings.get('groq_api_key')
         except Exception as e:
@@ -132,7 +132,7 @@ async def generate_preview(
 
 
 @router.post("/publish")
-def publish(req: PostRequest):
+async def publish(req: PostRequest):
     """Publish a post to LinkedIn."""
     if not generate_post_with_ai:
         return {"error": "generate_post_with_ai not available (import failed)"}
@@ -142,7 +142,7 @@ def publish(req: PostRequest):
     user_settings = None
     if req.user_id and get_user_settings:
         try:
-            user_settings = get_user_settings(req.user_id)
+            user_settings = await get_user_settings(req.user_id)
             if user_settings:
                 groq_api_key = user_settings.get('groq_api_key')
         except Exception as e:
@@ -162,7 +162,7 @@ def publish(req: PostRequest):
     # First try: use user's specific token
     if req.user_id and get_token_by_user_id:
         try:
-            user_token = get_token_by_user_id(req.user_id)
+            user_token = await get_token_by_user_id(req.user_id)
             if user_token:
                 linkedin_urn = user_token.get('linkedin_user_urn')
                 token = user_token.get('access_token')
@@ -180,7 +180,7 @@ def publish(req: PostRequest):
     # Fallback: use first stored account or environment-based service
     accounts = []
     try:
-        accounts = get_all_tokens() if get_all_tokens else []
+        accounts = await get_all_tokens() if get_all_tokens else []
     except Exception:
         accounts = []
 
@@ -188,7 +188,7 @@ def publish(req: PostRequest):
         account = accounts[0]
         linkedin_urn = account.get('linkedin_user_urn')
         try:
-            token = get_access_token_for_urn(linkedin_urn)
+            token = await get_access_token_for_urn(linkedin_urn)
         except Exception:
             token = None
 

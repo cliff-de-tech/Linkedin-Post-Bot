@@ -46,17 +46,91 @@ if not DATABASE_URL:
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+# Detect if we're using SQLite
+IS_SQLITE = DATABASE_URL and DATABASE_URL.startswith("sqlite")
+
 # Lazy import to avoid issues if databases package not installed
 database = None
+_wrapper = None
+
+
+def _convert_query_for_sqlite(query: str, params: list) -> tuple:
+    """
+    Convert PostgreSQL-style $1, $2 placeholders to SQLite-compatible :p1, :p2 named params.
+    
+    Args:
+        query: SQL query with $1, $2, ... placeholders
+        params: List of parameter values
+        
+    Returns:
+        Tuple of (converted_query, params_dict)
+    """
+    import re
+    
+    if not params:
+        return query, {}
+    
+    # Convert $1, $2, etc. to :p1, :p2, etc.
+    converted_query = query
+    params_dict = {}
+    
+    # Find all $N placeholders and replace them
+    for i, value in enumerate(params, 1):
+        placeholder = f"${i}"
+        named_param = f":p{i}"
+        converted_query = converted_query.replace(placeholder, named_param)
+        params_dict[f"p{i}"] = value
+    
+    return converted_query, params_dict
+
+
+class DatabaseWrapper:
+    """
+    Wrapper around the databases.Database class that handles
+    PostgreSQL/SQLite parameter compatibility.
+    
+    All services use PostgreSQL-style $1 placeholders, but when running
+    locally with SQLite, this wrapper converts them to named params.
+    """
+    
+    def __init__(self, db):
+        self._db = db
+        self._is_sqlite = IS_SQLITE
+    
+    @property
+    def is_connected(self):
+        return self._db.is_connected
+    
+    async def connect(self):
+        return await self._db.connect()
+    
+    async def disconnect(self):
+        return await self._db.disconnect()
+    
+    async def execute(self, query: str, values: list = None):
+        if self._is_sqlite and values:
+            query, values = _convert_query_for_sqlite(query, values)
+        return await self._db.execute(query=query, values=values)
+    
+    async def fetch_one(self, query: str, values: list = None):
+        if self._is_sqlite and values:
+            query, values = _convert_query_for_sqlite(query, values)
+        return await self._db.fetch_one(query=query, values=values)
+    
+    async def fetch_all(self, query: str, values: list = None):
+        if self._is_sqlite and values:
+            query, values = _convert_query_for_sqlite(query, values)
+        return await self._db.fetch_all(query=query, values=values)
 
 
 def get_database():
     """Get the database instance, initializing if needed."""
-    global database
+    global database, _wrapper
     if database is None:
         from databases import Database
         database = Database(DATABASE_URL)
-    return database
+        _wrapper = DatabaseWrapper(database)
+    return _wrapper
 
 
 async def connect_db():

@@ -630,7 +630,7 @@ async def linkedin_callback(code: str = None, state: str = None, redirect_uri: s
         if user_id and get_user_settings and exchange_code_for_token_with_user:
             settings = await get_user_settings(user_id)
             if settings and settings.get('linkedin_client_id') and settings.get('linkedin_client_secret'):
-                result = exchange_code_for_token_with_user(
+                result = await exchange_code_for_token_with_user(
                     settings['linkedin_client_id'],
                     settings['linkedin_client_secret'],
                     code,
@@ -649,7 +649,7 @@ async def linkedin_callback(code: str = None, state: str = None, redirect_uri: s
             
             # Pass user_id for multi-tenant token storage
             # CRITICAL: We pass backend_callback_uri as 'redirect_uri' for the exchange
-            result = exchange_code_for_token(code, backend_callback_uri, user_id)
+            result = await exchange_code_for_token(code, backend_callback_uri, user_id)
         
         linkedin_urn = result.get("linkedin_user_urn", "")
         return RedirectResponse(f"{frontend_redirect}?linkedin_success=true&linkedin_urn={linkedin_urn}")
@@ -888,9 +888,7 @@ async def get_connection_status_endpoint(user_id: str):
         - github_oauth_connected: Has GitHub OAuth token (for private repos)
     """
     try:
-        # Import get_connection_status from token_store
-        from services.token_store import get_connection_status, get_token_by_user_id
-        
+        # Use top-level imports (get_connection_status, get_token_by_user_id already imported)
         status = await get_connection_status(user_id)
         
         # Get github_username from settings

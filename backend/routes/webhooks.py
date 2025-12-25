@@ -140,7 +140,7 @@ async def handle_clerk_webhook(request: Request):
         # Import and run cleanup
         try:
             from services.user_data_cleanup import delete_all_user_data
-            result = delete_all_user_data(user_id)
+            result = await delete_all_user_data(user_id)
             
             return JSONResponse(
                 status_code=200,
