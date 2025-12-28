@@ -1,6 +1,8 @@
 import { SignUp } from "@clerk/nextjs";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
+import InteractiveBackground from "@/components/ui/InteractiveBackground";
 
 export default function SignUpPage() {
     const [mounted, setMounted] = useState(false);
@@ -15,6 +17,8 @@ export default function SignUpPage() {
 
     return (
         <div className="min-h-screen flex">
+            {/* Animated Background */}
+            <InteractiveBackground />
             {/* Left Side - Branding */}
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 relative overflow-hidden">
                 {/* Background Pattern */}
@@ -27,8 +31,9 @@ export default function SignUpPage() {
                     {/* Logo */}
                     <div className="flex items-center gap-3 mb-12">
                         <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                            {/* Lightning bolt - Post Bot logo */}
+                            <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
+                                <path d="M18 4l-8 12h6l-2 12 10-14h-6l4-10z" fill="white" stroke="white" strokeWidth="0.5" />
                             </svg>
                         </div>
                         <span className="text-2xl font-bold">Post Bot</span>
@@ -98,16 +103,22 @@ export default function SignUpPage() {
             </div>
 
             {/* Right Side - Sign Up Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50 dark:bg-gray-900">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-gray-50 dark:bg-gray-900 relative">
                 <div className="w-full max-w-md">
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
                         <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
-                            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
+                            {/* Lightning bolt - Post Bot logo */}
+                            <svg className="w-6 h-6" viewBox="0 0 32 32" fill="none">
+                                <path d="M18 4l-8 12h6l-2 12 10-14h-6l4-10z" fill="white" stroke="white" strokeWidth="0.5" />
                             </svg>
                         </div>
                         <span className="text-xl font-bold text-gray-900 dark:text-white">Post Bot</span>
+                    </div>
+
+                    {/* Theme Toggle */}
+                    <div className="absolute top-4 right-4">
+                        <ThemeToggle />
                     </div>
 
                     {/* Header */}
@@ -135,7 +146,7 @@ export default function SignUpPage() {
                                     socialButtonsBlockButton: "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors",
                                     formButtonPrimary: "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 transition-all",
                                     footerActionLink: "text-purple-600 hover:text-purple-700",
-                                    formFieldInput: "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600",
+                                    formFieldInput: "bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 dark:text-white text-gray-900",
                                     formFieldLabel: "text-gray-700 dark:text-gray-300",
                                     identityPreviewEditButton: "text-purple-600",
                                     formResendCodeLink: "text-purple-600",
