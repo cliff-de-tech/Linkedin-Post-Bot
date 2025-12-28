@@ -77,6 +77,28 @@ It's built for developers who want to grow their professional presence without s
 
 ---
 
+## 🆕 Recent Updates (December 2025)
+
+### Security Hardening
+
+- **JWT Authentication**: All 23+ API endpoints now require Clerk JWT verification
+- **Multi-Tenant Isolation**: User ID ownership verified on every data endpoint (403 on mismatch)
+- **Dev Mode Protection**: Development bypass now requires explicit `DEV_MODE=true` environment variable
+- **Debug Logging**: Silent exception handlers now log errors for better troubleshooting
+
+### Performance Optimizations
+
+- **Stats Query Optimization**: Consolidated 5 sequential database queries into 1 query using conditional aggregation — dashboard stats now load in 1-2 seconds instead of 5-10+
+- **Connection Pooling**: Database wrapper uses async connection pooling for PostgreSQL
+
+### Frontend Improvements
+
+- **Auth Token Integration**: Dashboard and Settings pages now properly authenticate all API requests
+- **Type Safety**: Removed `any` types from error handling, replaced with proper TypeScript guards
+- **Dead Code Removal**: Cleaned up deprecated `dashboard-old.tsx`
+
+---
+
 ## Security & LinkedIn Compliance
 
 This project prioritizes **safety and compliance**:
