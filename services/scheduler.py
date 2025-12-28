@@ -26,7 +26,7 @@ async def process_due_posts():
     """
     # Import here to avoid circular imports
     try:
-        from services.linkedin_service import publish_to_linkedin
+        from services.linkedin_service import post_to_linkedin
     except ImportError:
         logger.error("Could not import LinkedIn service")
         return 0
@@ -65,10 +65,9 @@ async def process_due_posts():
                 continue
             
             # Publish to LinkedIn
-            result = publish_to_linkedin(
+            result = post_to_linkedin(
+                message_text=post['post_content'],
                 access_token=tokens['access_token'],
-                content=post['post_content'],
-                image_url=post.get('image_url')
             )
             
             if result.get('success'):
