@@ -32,7 +32,7 @@ async def process_due_posts():
         return 0
     
     try:
-        from services.token_store import get_linkedin_tokens
+        from services.token_store import get_token_by_user_id
     except ImportError:
         logger.error("Could not import token store")
         return 0
@@ -52,7 +52,7 @@ async def process_due_posts():
     for post in due_posts:
         try:
             # Get user's LinkedIn tokens
-            tokens = await get_linkedin_tokens(post['user_id'])
+            tokens = await get_token_by_user_id(post['user_id'])
             
             if not tokens or not tokens.get('access_token'):
                 await update_post_status(
