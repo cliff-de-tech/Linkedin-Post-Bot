@@ -7,9 +7,11 @@
  * - Parallel data fetching with Promise.all behavior
  * - Type-safe response handling
  */
-import { useQuery, useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
 import axios from 'axios';
+import type { GitHubActivity, Template, PostContext } from '@/types/dashboard';
+import type { Post } from '@/components/dashboard/PostHistory';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -40,35 +42,6 @@ export interface UsageData {
     resets_at: string | null;
 }
 
-export interface Post {
-    id: string | number;
-    post_content: string;
-    post_type?: string;
-    context?: Record<string, unknown>;
-    status?: string;
-    created_at: number;
-    published_at?: number;
-}
-
-export interface Template {
-    id: string;
-    name: string;
-    description: string;
-    icon: string;
-    context?: Record<string, unknown>;
-}
-
-export interface GitHubActivity {
-    id: string;
-    title: string;
-    description: string;
-    type: string;
-    timestamp: string;
-    repo?: string;
-    url?: string;
-    context: Record<string, unknown>;
-}
-
 // ============================================================================
 // FETCH FUNCTIONS
 // ============================================================================
@@ -96,6 +69,7 @@ async function fetchUsage(userId: string, getToken: () => Promise<string | null>
         params: { timezone },
         headers: { Authorization: `Bearer ${token}` }
     });
+    // Handle both { usage: {...} } and direct response formats
     return response.data?.usage || response.data || null;
 }
 
@@ -177,7 +151,7 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
     });
 
     // Computed values
-    const isLoading = statsQuery.isLoading || postsQuery.isLoading || usageQuery.isLoading;
+    const isLoading = statsQuery.isLoading || postsQuery.isLoading || usageQuery.isLoading || settingsQuery.isLoading;
     const isError = statsQuery.isError || postsQuery.isError || usageQuery.isError;
 
     // Default stats
@@ -192,14 +166,21 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
         draft_posts: 0
     };
 
+    // Get first activity context for auto-selection
+    const activities = githubQuery.data || [];
+    const firstActivityContext = activities.length > 0 && activities[0].context
+        ? activities[0].context as PostContext
+        : null;
+
     return {
         // Data
         stats: statsQuery.data || defaultStats,
         posts: postsQuery.data || [],
         usage: usageQuery.data || null,
         templates: templatesQuery.data || [],
-        githubActivities: githubQuery.data || [],
+        githubActivities: activities,
         githubUsername,
+        firstActivityContext,
 
         // Loading states
         isLoading,

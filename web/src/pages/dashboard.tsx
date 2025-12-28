@@ -57,16 +57,26 @@ export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ========== REACT QUERY DATA FETCHING (AVAILABLE) ==========
-  // The useDashboardData hook is imported and ready for use.
-  // Current implementation still uses legacy useState pattern for stability.
-  // To migrate, replace the useState declarations below with:
-  // const { stats, posts: postHistory, usage, templates, githubActivities, ... } = useDashboardData({ userId, enabled: isAuthenticated });
+  // ========== REACT QUERY DATA FETCHING ==========
+  // User-scoped queries with automatic caching and background refetching
+  const {
+    stats,
+    posts: postHistory,
+    usage,
+    templates,
+    githubActivities,
+    githubUsername,
+    firstActivityContext,
+    isLoading: loadingData,
+    refetchStats,
+    refetchPosts,
+    refetchAll,
+  } = useDashboardData({ userId, enabled: isAuthenticated && !!userId });
 
-  // Usage tracking for free tier
-  const [usage, setUsage] = useState<UsageData | null>(null);
+  // Alias for backwards compatibility with existing JSX
+  const usageData = usage;
 
-  // State
+  // State for post generation
   const [context, setContext] = useState<PostContext>({
     type: 'push',
     commits: 3,
@@ -78,36 +88,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
 
-  // Data
-  const [githubUsername, setGithubUsername] = useState('');
-  const [githubActivities, setGithubActivities] = useState<GitHubActivity[]>([]);
-  const [postHistory, setPostHistory] = useState<Post[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [stats, setStats] = useState({
-    posts_generated: 0,
-    credits_remaining: 50,
-    posts_published: 0,
-    posts_this_month: 0,
-    posts_this_week: 0,
-    posts_last_week: 0,
-    growth_percentage: 0,
-    draft_posts: 0
-  });
-  const [usageData, setUsageData] = useState<{
-    tier: string;
-    posts_today: number;
-    posts_limit: number;
-    posts_remaining: number;
-    scheduled_count: number;
-    scheduled_limit: number;
-    scheduled_remaining: number;
-    resets_in_seconds: number;
-    resets_at: string | null;
-  } | null>(null);
-  const [loadingData, setLoadingData] = useState(true);
-
   // Computed: is daily limit reached?
-  const isLimitReached = usageData?.posts_remaining === 0;
+  const isLimitReached = usage?.posts_remaining === 0;
+
+  // Auto-populate context from first GitHub activity
+  useEffect(() => {
+    if (firstActivityContext && context.repo === 'my-project') {
+      setContext(firstActivityContext);
+    }
+  }, [firstActivityContext]);
 
 
   // Modals
@@ -162,8 +151,6 @@ export default function Dashboard() {
       console.log('🧪 DEV TEST MODE: Bypassing auth');
       setIsAuthenticated(true);
       setIsLoading(false);
-      setGithubUsername('test-user'); // Mock GitHub username
-      loadDashboardData(testUserId);
       return;
     }
 
@@ -190,7 +177,6 @@ export default function Dashboard() {
 
       if (linkedinUrn || authVerified) {
         setIsAuthenticated(true);
-        loadDashboardData(uid);
         setIsLoading(false);
         return;
       }
@@ -203,7 +189,6 @@ export default function Dashboard() {
 
       if (response.data.access_token || response.data.authenticated) {
         setIsAuthenticated(true);
-        loadDashboardData(uid);
       } else {
         // User hasn't completed onboarding - redirect them
         setIsAuthenticated(false);
@@ -215,7 +200,6 @@ export default function Dashboard() {
       const linkedinUrn = localStorage.getItem('linkedin_user_urn');
       if (linkedinUrn) {
         setIsAuthenticated(true);
-        loadDashboardData(uid);
       } else {
         // Redirect to onboarding for incomplete setup
         setIsAuthenticated(false);
@@ -223,113 +207,6 @@ export default function Dashboard() {
       }
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const loadDashboardData = async (uid: string) => {
-    setLoadingData(true);
-    try {
-      await Promise.all([
-        loadUserSettings(uid),
-        loadStats(uid),
-        loadPostHistory(uid),
-        loadTemplates(),
-        loadUsage(uid)
-      ]);
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
-  const loadUsage = async (uid: string) => {
-    try {
-      // Get user's timezone for accurate reset time
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const token = await getToken();
-      const response = await axios.get(`${API_BASE}/api/usage/${uid}`, {
-        params: { timezone },
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data?.success && response.data?.usage) {
-        setUsage(response.data.usage);
-      }
-      // Also set usageData for limit tracking
-      if (response.data) {
-        setUsageData(response.data);
-      }
-    } catch (error) {
-      console.error('Error loading usage:', error);
-    }
-  };
-
-
-  useEffect(() => {
-    if (githubUsername && isAuthenticated) {
-      loadGitHubActivity(githubUsername);
-    }
-  }, [githubUsername, isAuthenticated]);
-
-  const loadUserSettings = async (uid: string) => {
-    try {
-      const token = await getToken();
-      const response = await axios.get(`${API_BASE}/api/settings/${uid}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (response.data && response.data.github_username) {
-        setGithubUsername(response.data.github_username);
-      }
-    } catch (error) {
-      console.log('No settings found');
-    }
-  };
-
-  const loadGitHubActivity = async (username: string) => {
-    try {
-      const response = await axios.get(`${API_BASE}/api/github/activity/${username}`);
-      const activities = response.data.activities || [];
-      setGithubActivities(activities);
-
-      // Auto-select the first activity to populate the Post Context card
-      // This ensures the user sees real data immediately instead of placeholders
-      if (activities.length > 0 && activities[0].context) {
-        setContext(activities[0].context as PostContext);
-      }
-    } catch (error) {
-      // Don't show toast on load, just log
-      console.error('Error loading GitHub activity:', error);
-    }
-  };
-
-  const loadPostHistory = async (uid: string) => {
-    try {
-      const token = await getToken();
-      const response = await axios.get(`${API_BASE}/api/posts/${uid}?limit=10`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setPostHistory(response.data.posts || []);
-    } catch (error) {
-      console.error('Error loading post history:', error);
-    }
-  };
-
-  const loadTemplates = async () => {
-    try {
-      const response = await axios.get(`${API_BASE}/api/templates`);
-      setTemplates(response.data.templates || []);
-    } catch (error) {
-      console.error('Error loading templates:', error);
-    }
-  };
-
-  const loadStats = async (uid: string) => {
-    try {
-      const token = await getToken();
-      const response = await axios.get(`${API_BASE}/api/stats/${uid}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setStats(prev => ({ ...prev, ...response.data }));
-    } catch (error) {
-      console.error('Error loading stats:', error);
     }
   };
 
@@ -349,8 +226,8 @@ export default function Dashboard() {
       await savePost(result.post, 'draft');
 
       // Refresh stats to update "Generated Posts" card immediately
-      await loadStats(userId);
-      await loadPostHistory(userId);
+      await refetchStats();
+      await refetchPosts();
     } catch (error: unknown) {
       showToast.dismiss(toastId);
       const message = error instanceof Error ? error.message : 'An error occurred';
@@ -372,8 +249,8 @@ export default function Dashboard() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      loadPostHistory(userId);
-      loadStats(userId);
+      refetchPosts();
+      refetchStats();
     } catch (error) {
       showToast.error('Failed to save post');
       console.error('Error saving post:', error);
@@ -407,8 +284,8 @@ export default function Dashboard() {
           }
 
           // Refresh stats to update "Published" card immediately
-          await loadStats(userId);
-          await loadPostHistory(userId);
+          await refetchStats();
+          await refetchPosts();
         }
       }
     } catch (error: unknown) {
