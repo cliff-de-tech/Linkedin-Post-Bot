@@ -1,7 +1,10 @@
 import os
 import datetime
+import logging
 from dateutil import parser
 from groq import Groq
+
+logger = logging.getLogger(__name__)
 
 # Load .env file for local development
 try:
@@ -310,31 +313,37 @@ if GROQ_API_KEY:
         client = None
 
 
-def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "standard"):
+def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "standard", persona_context: str = None):
     """Use Groq/Gemini-style model to draft a LinkedIn post based on context.
     
     Args:
         context_data: Dictionary with activity context
         groq_api_key: Optional per-user Groq API key. Falls back to env var if not provided.
         style: Post style template ('standard', 'build_in_public', 'thought_leadership', 'job_search')
+        persona_context: Optional pre-built persona prompt string from persona_service.build_persona_prompt()
     """
-    print(f"🧠 AI service: generating {style} post...")
+    logger.info(f"🧠 AI service: generating {style} post...")
     
     # Determine which API key to use
     api_key = groq_api_key or GROQ_API_KEY
     if not api_key:
-        print("⚠️  No Groq API key provided (neither user key nor GROQ_API_KEY env var)")
+        logger.warning("⚠️  No Groq API key provided (neither user key nor GROQ_API_KEY env var)")
         return None
     
     # Create client with the appropriate key
     try:
         active_client = Groq(api_key=api_key)
     except Exception as e:
-        print(f"⚠️  Failed to initialize Groq client: {e}")
+        logger.warning(f"⚠️  Failed to initialize Groq client: {e}")
         return None
     
     # Select prompt based on style
     system_prompt = get_prompt_for_style(style)
+    
+    # Inject persona context if provided
+    if persona_context:
+        system_prompt = system_prompt + "\n\n" + persona_context
+        logger.debug("Persona context injected into prompt")
     
     # Format the prompt based on context type
     activity_type = context_data.get('type', 'generic')

@@ -27,6 +27,11 @@ except ImportError:
     generate_post_with_ai = None
 
 try:
+    from services.persona_service import build_full_persona_context
+except ImportError:
+    build_full_persona_context = None
+
+try:
     from services.image_service import get_relevant_image
 except ImportError:
     get_relevant_image = None
@@ -127,7 +132,15 @@ async def generate_preview(
         except Exception as e:
             print(f"Failed to get user settings: {type(e).__name__}")
     
-    post = generate_post_with_ai(req.context, groq_api_key=groq_api_key)
+    # Get user's persona context
+    persona_context = None
+    if user_id and build_full_persona_context:
+        try:
+            persona_context = await build_full_persona_context(user_id)
+        except Exception as e:
+            print(f"Failed to get persona: {type(e).__name__}")
+    
+    post = generate_post_with_ai(req.context, groq_api_key=groq_api_key, persona_context=persona_context)
     return {"post": post}
 
 
@@ -147,8 +160,16 @@ async def publish(req: PostRequest):
                 groq_api_key = user_settings.get('groq_api_key')
         except Exception as e:
             print(f"Failed to get user settings: {e}")
+    
+    # Get user's persona context
+    persona_context = None
+    if req.user_id and build_full_persona_context:
+        try:
+            persona_context = await build_full_persona_context(req.user_id)
+        except Exception as e:
+            print(f"Failed to get persona: {type(e).__name__}")
 
-    post = generate_post_with_ai(req.context, groq_api_key=groq_api_key)
+    post = generate_post_with_ai(req.context, groq_api_key=groq_api_key, persona_context=persona_context)
     if not post:
         return {"error": "failed_to_generate_post"}
 

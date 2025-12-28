@@ -72,6 +72,16 @@ from services.github_activity import (
 from services.ai_service import generate_post_with_ai
 
 # =============================================================================
+# Persona Service
+# =============================================================================
+from services.persona_service import (
+    get_user_persona,
+    save_user_persona,
+    build_persona_prompt,
+    build_full_persona_context,
+)
+
+# =============================================================================
 # Scheduler
 # =============================================================================
 from services.scheduler import (
@@ -129,6 +139,11 @@ __all__ = [
     'get_recent_repo_updates',
     # AI
     'generate_post_with_ai',
+    # Persona
+    'get_user_persona',
+    'save_user_persona',
+    'build_persona_prompt',
+    'build_full_persona_context',
     # Scheduler
     'start_scheduler',
     'start_scheduler_async',

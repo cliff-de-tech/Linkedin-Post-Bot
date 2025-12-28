@@ -17,6 +17,7 @@ WHAT IS STORED HERE:
     - user_id: Clerk user ID (tenant isolation key)
     - github_username: Public GitHub username
     - preferences: JSON blob for UI preferences
+    - persona: JSON blob for AI writing persona
     - onboarding_complete: Boolean flag
     - subscription_tier: 'free' | 'pro' | 'enterprise'
     - subscription_status: 'active' | 'cancelled' | 'expired'
@@ -47,6 +48,7 @@ async def save_user_settings(user_id: str, settings: dict) -> None:
     Accepted fields:
         - github_username: Public GitHub username
         - preferences: Dict of UI preferences
+        - persona: Dict of AI writing persona settings
         - onboarding_complete: Boolean
         - subscription_tier: 'free' | 'pro' | 'enterprise'
         - subscription_status: 'active' | 'cancelled' | 'expired'
@@ -73,22 +75,25 @@ async def save_user_settings(user_id: str, settings: dict) -> None:
     merged = {
         'github_username': merge_field('github_username', ''),
         'preferences': settings.get('preferences') or existing.get('preferences') or {},
+        'persona': settings.get('persona') or existing.get('persona') or {},
         'onboarding_complete': merge_field('onboarding_complete', 0),
         'subscription_tier': merge_field('subscription_tier', 'free'),
         'subscription_status': merge_field('subscription_status', 'active'),
     }
     
-    # Convert preferences dict to JSON
+    # Convert dicts to JSON
     preferences_json = json.dumps(merged['preferences']) if isinstance(merged['preferences'], dict) else merged['preferences']
+    persona_json = json.dumps(merged['persona']) if isinstance(merged['persona'], dict) else merged['persona']
     
     await db.execute("""
         INSERT INTO user_settings 
-        (user_id, github_username, preferences, onboarding_complete, 
+        (user_id, github_username, preferences, persona, onboarding_complete, 
          subscription_tier, subscription_status, updated_at, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT(user_id) DO UPDATE SET
             github_username = EXCLUDED.github_username,
             preferences = EXCLUDED.preferences,
+            persona = EXCLUDED.persona,
             onboarding_complete = EXCLUDED.onboarding_complete,
             subscription_tier = EXCLUDED.subscription_tier,
             subscription_status = EXCLUDED.subscription_status,
@@ -97,6 +102,7 @@ async def save_user_settings(user_id: str, settings: dict) -> None:
         user_id,
         merged['github_username'],
         preferences_json,
+        persona_json,
         1 if merged['onboarding_complete'] else 0,
         merged['subscription_tier'],
         merged['subscription_status'],
@@ -138,10 +144,18 @@ async def get_user_settings(user_id: str) -> dict | None:
     except json.JSONDecodeError:
         preferences = {}
     
+    # Parse persona JSON
+    persona_raw = row_dict.get('persona', '{}')
+    try:
+        persona = json.loads(persona_raw) if persona_raw else {}
+    except json.JSONDecodeError:
+        persona = {}
+    
     return {
         'user_id': row_dict.get('user_id'),
         'github_username': row_dict.get('github_username', ''),
         'preferences': preferences,
+        'persona': persona,
         'onboarding_complete': bool(row_dict.get('onboarding_complete', 0)),
         'subscription_tier': row_dict.get('subscription_tier', 'free'),
         'subscription_status': row_dict.get('subscription_status', 'active'),

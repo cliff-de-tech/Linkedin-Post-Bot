@@ -56,6 +56,7 @@ user_settings = Table(
     Column("user_id", Text, unique=True),
     Column("github_username", Text),
     Column("preferences", Text, default="{}"),
+    Column("persona", Text, default="{}"),  # User's writing persona for AI
     Column("onboarding_complete", Integer, default=0),
     Column("subscription_tier", Text, default="free"),
     Column("subscription_status", Text, default="active"),
