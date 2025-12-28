@@ -9,6 +9,9 @@ This module provides a background task that:
 
 import asyncio
 import logging
+
+# Import from centralized services package - errors caught at module load
+from services import post_to_linkedin, get_token_by_user_id
 from services.scheduled_posts import get_due_posts, update_post_status
 
 logger = logging.getLogger(__name__)
@@ -24,19 +27,6 @@ async def process_due_posts():
     Returns:
         Number of posts processed
     """
-    # Import here to avoid circular imports
-    try:
-        from services.linkedin_service import post_to_linkedin
-    except ImportError:
-        logger.error("Could not import LinkedIn service")
-        return 0
-    
-    try:
-        from services.token_store import get_token_by_user_id
-    except ImportError:
-        logger.error("Could not import token store")
-        return 0
-    
     try:
         due_posts = await get_due_posts()
     except Exception as e:
