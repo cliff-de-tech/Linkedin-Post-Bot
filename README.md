@@ -79,6 +79,14 @@ It's built for developers who want to grow their professional presence without s
 
 ## 🆕 Recent Updates (December 2025)
 
+### Clean Architecture Refactor
+
+- **Modular Backend**: `app.py` refactored from 1832 → ~200 lines
+- **SQLAlchemy Schema**: Type-safe table definitions in `backend/database/schema.py`
+- **Alembic Migrations**: Professional schema versioning replaces `init_tables()`
+- **Repository Pattern**: `BaseRepository` enforces user_id filtering for multi-tenant isolation
+- **Dependency Injection**: `get_post_repository()` and `get_settings_repository()` helpers
+
 ### Security Hardening
 
 - **JWT Authentication**: All 23+ API endpoints now require Clerk JWT verification
@@ -744,20 +752,39 @@ curl https://your-backend.railway.app/openapi.json > openapi.json
 
 ```
 linkedin-post-bot/
-├── web/                    # Next.js Frontend
-│   ├── src/pages/          # Dashboard, Settings, Onboarding
-│   ├── src/components/     # UI Components
-│   └── src/hooks/          # Custom React hooks
-├── backend/                # FastAPI Backend
-│   ├── app.py              # API server
-│   └── middleware/         # Auth middleware
-├── services/               # Core Business Logic
-│   ├── ai_service.py       # Groq AI integration
-│   ├── github_activity.py  # GitHub API client
-│   ├── linkedin_service.py # LinkedIn posting
-│   └── user_settings.py    # Settings storage
-├── bot.py                  # Standalone CLI bot
-└── auth.py                 # OAuth helper
+├── web/                        # Next.js Frontend
+│   ├── src/pages/              # Dashboard, Settings, Onboarding
+│   ├── src/components/         # UI Components
+│   └── src/hooks/              # Custom React hooks
+├── backend/                    # FastAPI Backend (Clean Architecture)
+│   ├── app.py                  # Slim entry point (~200 lines)
+│   ├── core/                   # Configuration & logging
+│   │   └── config.py           # Environment, CORS, templates
+│   ├── database/               # SQLAlchemy schema
+│   │   └── schema.py           # Table definitions
+│   ├── migrations/             # Alembic migrations
+│   │   ├── env.py              # Async migration env
+│   │   └── versions/           # Migration files
+│   ├── repositories/           # Data access layer
+│   │   ├── base.py             # BaseRepository (user_id filtering)
+│   │   ├── posts.py            # PostRepository
+│   │   └── settings.py         # SettingsRepository
+│   ├── routes/                 # API routers
+│   │   ├── github.py           # GitHub OAuth + scan
+│   │   ├── linkedin.py         # LinkedIn OAuth
+│   │   └── posts.py            # Post generation
+│   ├── schemas/                # Pydantic models
+│   │   └── requests.py         # Request/response models
+│   ├── middleware/             # Auth middleware
+│   └── dependencies.py         # DI helpers
+├── services/                   # Core Business Logic
+│   ├── ai_service.py           # Groq AI integration
+│   ├── github_activity.py      # GitHub API client
+│   ├── linkedin_service.py     # LinkedIn posting
+│   ├── db.py                   # Database connection
+│   └── user_settings.py        # Settings storage
+├── bot.py                      # Standalone CLI bot
+└── auth.py                     # OAuth helper
 ```
 
 ---
@@ -998,9 +1025,16 @@ docker run -p 8000:8000 \
 ## Development
 
 ```bash
-# Run with hot-reload
-cd backend && uvicorn app:app --reload --port 8000
+# Run backend with hot-reload (from project root)
+python -m uvicorn backend.app:app --reload --port 8000
+
+# Run frontend
 cd web && npm run dev
+
+# Database migrations (from backend directory)
+cd backend && alembic upgrade head              # Apply migrations
+cd backend && alembic revision --autogenerate -m "description"  # New migration
+cd backend && alembic downgrade -1              # Rollback one
 
 # Run tests
 cd backend && pytest tests/ -v
