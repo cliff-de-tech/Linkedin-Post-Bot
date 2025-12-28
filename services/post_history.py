@@ -128,48 +128,47 @@ async def delete_post(post_id: int) -> None:
 
 
 async def get_user_stats(user_id: str) -> dict:
-    """Get comprehensive stats for a user."""
+    """Get comprehensive stats for a user.
+    
+    OPTIMIZED: Single query with conditional aggregation instead of 5 separate queries.
+    This reduces DB round-trips from 5 to 1, significantly improving dashboard load time.
+    """
     db = get_database()
     
-    # Total posts (all time)
-    row = await db.fetch_one(
-        "SELECT COUNT(*) as count FROM post_history WHERE user_id = $1", 
-        [user_id]
-    )
-    total_posts = row['count'] if row else 0
+    # Pre-calculate timestamps
+    now = int(time.time())
+    one_week_ago = now - (7 * 24 * 60 * 60)
+    two_weeks_ago = now - (14 * 24 * 60 * 60)
+    current_month_start = now - (30 * 24 * 60 * 60)
     
-    # Published posts (all time)
-    row = await db.fetch_one(
-        "SELECT COUNT(*) as count FROM post_history WHERE user_id = $1 AND status = $2", 
-        [user_id, 'published']
-    )
-    published_posts = row['count'] if row else 0
+    # Single optimized query with conditional counting
+    row = await db.fetch_one("""
+        SELECT 
+            COUNT(*) as total_posts,
+            SUM(CASE WHEN status = 'published' THEN 1 ELSE 0 END) as published_posts,
+            SUM(CASE WHEN created_at > $2 THEN 1 ELSE 0 END) as posts_this_month,
+            SUM(CASE WHEN created_at > $3 THEN 1 ELSE 0 END) as posts_this_week,
+            SUM(CASE WHEN created_at > $4 AND created_at <= $3 THEN 1 ELSE 0 END) as posts_last_week
+        FROM post_history 
+        WHERE user_id = $1
+    """, [user_id, current_month_start, one_week_ago, two_weeks_ago])
     
-    # This month (30 days)
-    current_month_start = int(time.time()) - (30 * 24 * 60 * 60)
-    row = await db.fetch_one(
-        "SELECT COUNT(*) as count FROM post_history WHERE user_id = $1 AND created_at > $2", 
-        [user_id, current_month_start]
-    )
-    posts_this_month = row['count'] if row else 0
+    if not row:
+        return {
+            'posts_generated': 0,
+            'posts_published': 0,
+            'posts_this_month': 0,
+            'posts_this_week': 0,
+            'posts_last_week': 0,
+            'growth_percentage': 0,
+            'draft_posts': 0
+        }
     
-    # Week-over-week growth calculation
-    one_week_ago = int(time.time()) - (7 * 24 * 60 * 60)
-    two_weeks_ago = int(time.time()) - (14 * 24 * 60 * 60)
-    
-    # Posts this week (last 7 days)
-    row = await db.fetch_one(
-        "SELECT COUNT(*) as count FROM post_history WHERE user_id = $1 AND created_at > $2", 
-        [user_id, one_week_ago]
-    )
-    posts_this_week = row['count'] if row else 0
-    
-    # Posts last week (7-14 days ago)
-    row = await db.fetch_one(
-        "SELECT COUNT(*) as count FROM post_history WHERE user_id = $1 AND created_at > $2 AND created_at <= $3", 
-        [user_id, two_weeks_ago, one_week_ago]
-    )
-    posts_last_week = row['count'] if row else 0
+    total_posts = row['total_posts'] or 0
+    published_posts = row['published_posts'] or 0
+    posts_this_month = row['posts_this_month'] or 0
+    posts_this_week = row['posts_this_week'] or 0
+    posts_last_week = row['posts_last_week'] or 0
     
     # Calculate growth percentage
     if posts_last_week > 0:
@@ -188,6 +187,7 @@ async def get_user_stats(user_id: str) -> dict:
         'growth_percentage': growth_percentage,
         'draft_posts': total_posts - published_posts
     }
+
 
 
 async def get_daily_post_count(user_id: str, user_timezone: str = "UTC") -> int:
