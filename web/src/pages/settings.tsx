@@ -11,7 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useUser, UserButton, useAuth } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import SEOHead from '@/components/SEOHead';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -30,6 +30,7 @@ interface ConnectionStatus {
 export default function Settings() {
   const router = useRouter();
   const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -92,7 +93,10 @@ export default function Settings() {
     if (!userId) return;
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE}/api/connection-status/${userId}`);
+      const token = await getToken();
+      const response = await axios.get(`${API_BASE}/api/connection-status/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data && !response.data.error) {
         setConnectionStatus({
           linkedin_connected: response.data.linkedin_connected || false,
@@ -140,7 +144,10 @@ export default function Settings() {
 
   const handleDisconnectLinkedIn = async () => {
     try {
-      await axios.post(`${API_BASE}/api/disconnect-linkedin`, { user_id: userId });
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/disconnect-linkedin`, { user_id: userId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       localStorage.removeItem('linkedin_user_urn');
       setConnectionStatus(prev => ({ ...prev, linkedin_connected: false, linkedin_urn: '' }));
       showToast.success('LinkedIn disconnected');
@@ -170,7 +177,10 @@ export default function Settings() {
 
   const handleDisconnectGitHub = async () => {
     try {
-      await axios.post(`${API_BASE}/api/disconnect-github`, { user_id: userId });
+      const token = await getToken();
+      await axios.post(`${API_BASE}/api/disconnect-github`, { user_id: userId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setConnectionStatus(prev => ({ ...prev, github_oauth_connected: false }));
       showToast.success('GitHub OAuth disconnected');
     } catch (error) {
@@ -184,9 +194,12 @@ export default function Settings() {
 
     setSavingGithub(true);
     try {
+      const token = await getToken();
       await axios.post(`${API_BASE}/api/settings`, {
         user_id: userId,
         github_username: githubUsername.trim()
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setConnectionStatus(prev => ({
         ...prev,

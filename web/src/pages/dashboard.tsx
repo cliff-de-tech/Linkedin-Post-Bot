@@ -122,6 +122,31 @@ export default function Dashboard() {
   const [showImageSelector, setShowImageSelector] = useState(false);
   const [loadingImages, setLoadingImages] = useState(false);
 
+  // Scheduled posts state
+  const [scheduledPosts, setScheduledPosts] = useState<Array<{ id: number, post_content: string, image_url?: string, scheduled_time: number, status: string, error_message?: string, created_at: number, published_at?: number }>>([]);
+
+  // Load scheduled posts when history modal opens
+  const loadScheduledPosts = async (uid: string) => {
+    try {
+      const token = await getToken();
+      const response = await axios.get(`${API_BASE}/api/scheduled-posts/${uid}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        setScheduledPosts(response.data.posts || []);
+      }
+    } catch (error) {
+      console.error('Failed to load scheduled posts:', error);
+    }
+  };
+
+  // Trigger scheduled posts load when history modal opens
+  useEffect(() => {
+    if (showHistory && userId) {
+      loadScheduledPosts(userId);
+    }
+  }, [showHistory, userId]);
+
   // DEV TEST MODE: Skip auth and load directly
   useEffect(() => {
     if (!router.isReady) return; // Wait for router to be ready
@@ -164,7 +189,10 @@ export default function Dashboard() {
       }
 
       // Check backend for saved settings
-      const response = await axios.post(`${API_BASE}/api/auth/refresh`, { user_id: uid });
+      const token = await getToken();
+      const response = await axios.post(`${API_BASE}/api/auth/refresh`, { user_id: uid }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       if (response.data.access_token || response.data.authenticated) {
         setIsAuthenticated(true);
@@ -210,8 +238,10 @@ export default function Dashboard() {
     try {
       // Get user's timezone for accurate reset time
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const token = await getToken();
       const response = await axios.get(`${API_BASE}/api/usage/${uid}`, {
-        params: { timezone }
+        params: { timezone },
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data?.success && response.data?.usage) {
         setUsage(response.data.usage);
@@ -234,7 +264,10 @@ export default function Dashboard() {
 
   const loadUserSettings = async (uid: string) => {
     try {
-      const response = await axios.get(`${API_BASE}/api/settings/${uid}`);
+      const token = await getToken();
+      const response = await axios.get(`${API_BASE}/api/settings/${uid}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (response.data && response.data.github_username) {
         setGithubUsername(response.data.github_username);
       }
@@ -262,7 +295,10 @@ export default function Dashboard() {
 
   const loadPostHistory = async (uid: string) => {
     try {
-      const response = await axios.get(`${API_BASE}/api/posts/${uid}?limit=10`);
+      const token = await getToken();
+      const response = await axios.get(`${API_BASE}/api/posts/${uid}?limit=10`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setPostHistory(response.data.posts || []);
     } catch (error) {
       console.error('Error loading post history:', error);
@@ -280,7 +316,10 @@ export default function Dashboard() {
 
   const loadStats = async (uid: string) => {
     try {
-      const response = await axios.get(`${API_BASE}/api/stats/${uid}`);
+      const token = await getToken();
+      const response = await axios.get(`${API_BASE}/api/stats/${uid}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setStats(prev => ({ ...prev, ...response.data }));
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -305,9 +344,10 @@ export default function Dashboard() {
       // Refresh stats to update "Generated Posts" card immediately
       await loadStats(userId);
       await loadPostHistory(userId);
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast.dismiss(toastId);
-      showToast.error('Error: ' + error.message);
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      showToast.error('Error: ' + message);
     } finally {
       setLoading(false);
     }
@@ -315,12 +355,15 @@ export default function Dashboard() {
 
   const savePost = async (content: string, postStatus: string) => {
     try {
+      const token = await getToken();
       await axios.post(`${API_BASE}/api/posts`, {
         user_id: userId,
         post_content: content,
         post_type: context.type,
         context: context,
         status: postStatus
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       loadPostHistory(userId);
       loadStats(userId);
@@ -361,9 +404,10 @@ export default function Dashboard() {
           await loadPostHistory(userId);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       showToast.dismiss(toastId);
-      showToast.error('Error: ' + error.message);
+      const message = error instanceof Error ? error.message : 'An error occurred';
+      showToast.error('Error: ' + message);
     } finally {
       setLoading(false);
     }
@@ -671,7 +715,7 @@ export default function Dashboard() {
           status: (p.status as 'published' | 'scheduled' | 'draft') || 'published',
           created_at: String(p.created_at)
         }))}
-
+        scheduledPosts={scheduledPosts}
         loading={loadingData}
       />
 

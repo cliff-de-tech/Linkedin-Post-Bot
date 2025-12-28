@@ -22,7 +22,7 @@ interface PostHistoryProps {
     formatDate: (timestamp: number) => string;
 }
 
-export const PostHistory: React.FC<PostHistoryProps> = ({
+const PostHistoryComponent: React.FC<PostHistoryProps> = ({
     posts,
     isOpen,
     onClose,
@@ -74,3 +74,6 @@ export const PostHistory: React.FC<PostHistoryProps> = ({
         </div>
     );
 };
+
+// Memoize to prevent re-renders when props haven't changed
+export const PostHistory = React.memo(PostHistoryComponent);

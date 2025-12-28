@@ -305,7 +305,8 @@ client = None
 if GROQ_API_KEY:
     try:
         client = Groq(api_key=GROQ_API_KEY)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to initialize Groq client: {e}")
         client = None
 
 

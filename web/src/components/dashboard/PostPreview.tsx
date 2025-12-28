@@ -17,7 +17,7 @@ interface PostPreviewProps {
  * - Copy to clipboard
  * - Character count display
  */
-export const PostPreview: React.FC<PostPreviewProps> = ({ preview, imageUrl, onEdit }) => {
+const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, onEdit }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
@@ -211,3 +211,6 @@ export const PostPreview: React.FC<PostPreviewProps> = ({ preview, imageUrl, onE
         </div>
     );
 };
+
+// Memoize to prevent re-renders when props haven't changed
+export const PostPreview = React.memo(PostPreviewComponent);

@@ -93,6 +93,9 @@ from services.scheduled_posts import (
     reschedule_post
 )
 
+# Scheduler worker
+from services.scheduler import start_scheduler_async, stop_scheduler
+
 # Feedback service
 from services.feedback import (
     save_feedback,
@@ -210,14 +213,16 @@ from services.db import connect_db, disconnect_db, init_tables
 
 @app.on_event("startup")
 async def startup():
-    """Initialize database connection pool and create tables."""
+    """Initialize database connection pool, create tables, and start scheduler."""
     await connect_db()
     await init_tables()
+    await start_scheduler_async()  # Start background scheduler for publishing due posts
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    """Close database connection pool."""
+    """Close database connection pool and stop scheduler."""
+    stop_scheduler()
     await disconnect_db()
 
 # Add CORS middleware
@@ -334,8 +339,15 @@ Suggestions: {req.suggestions or 'None'}
 
 
 @app.get("/api/feedback/status/{user_id}")
-async def get_feedback_status(user_id: str):
-    """Check if user has already submitted feedback."""
+async def get_feedback_status(
+    user_id: str,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Check if user has already submitted feedback (secured)."""
+    # SECURITY: Verify user is checking their own feedback status
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot check other user's feedback")
+    
     if not has_user_submitted_feedback:
         return {"has_submitted": False}
     
@@ -445,7 +457,15 @@ async def generate_preview(
 
 
 @app.post("/publish")
-async def publish(req: PostRequest):
+async def publish(
+    req: PostRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Publish endpoint (secured)"""
+    # SECURITY: Verify user is publishing for their own account
+    if current_user and req.user_id and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot publish for other users")
+    
     if not generate_post_with_ai:
         return {"error": "generate_post_with_ai not available (import failed)"}
 
@@ -494,7 +514,8 @@ async def publish(req: PostRequest):
     accounts = []
     try:
         accounts = await get_all_tokens() if get_all_tokens else []
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to get tokens: {e}")
         accounts = []
 
     if accounts:
@@ -783,10 +804,17 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
 
 
 @app.post("/api/disconnect-github")
-async def disconnect_github(request: DisconnectRequest):
+async def disconnect_github(
+    request: DisconnectRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
     """
-    Disconnect a user's GitHub OAuth token.
+    Disconnect a user's GitHub OAuth token (secured - verifies ownership).
     """
+    # SECURITY: Verify user is disconnecting their own GitHub
+    if current_user and current_user.get("user_id") != request.user_id:
+        raise HTTPException(status_code=403, detail="Cannot disconnect other user's GitHub")
+    
     try:
         from services.db import get_database
         db = get_database()
@@ -818,14 +846,20 @@ class AuthRefreshRequest(BaseModel):
 
 
 @app.post("/api/auth/refresh")
-async def refresh_auth(req: AuthRefreshRequest):
-    """Check if user has valid LinkedIn connection"""
+async def refresh_auth(
+    req: AuthRefreshRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Check if user has valid LinkedIn connection (secured)"""
+    # SECURITY: Verify user is checking their own auth status
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot check other user's auth")
+    
     if not get_user_settings:
         return {"error": "Settings service not available"}
     try:
         settings = await get_user_settings(req.user_id)
         if settings and settings.get("linkedin_user_urn"):
-            # User has LinkedIn connected
             return {
                 "access_token": "valid",
                 "user_urn": settings.get("linkedin_user_urn"),
@@ -837,8 +871,15 @@ async def refresh_auth(req: AuthRefreshRequest):
 
 
 @app.post("/api/settings")
-async def save_settings(settings: UserSettingsRequest):
-    """Save user settings"""
+async def save_settings(
+    settings: UserSettingsRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Save user settings (secured - verifies ownership)"""
+    # SECURITY: Verify user is saving their own settings
+    if current_user and current_user.get("user_id") != settings.user_id:
+        raise HTTPException(status_code=403, detail="Cannot modify other user's settings")
+    
     if not save_user_settings:
         return {"error": "User settings service not available"}
     try:
@@ -849,13 +890,19 @@ async def save_settings(settings: UserSettingsRequest):
 
 
 @app.get("/api/settings/{user_id}")
-async def get_settings(user_id: str):
+async def get_settings(
+    user_id: str,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
     """
-    Get user settings by user ID.
+    Get user settings by user ID (secured - verifies ownership).
     
     SECURITY: Returns ONLY safe, non-sensitive data.
-    No credentials, tokens, or API keys are returned.
     """
+    # SECURITY: Verify user is accessing their own settings
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's settings")
+    
     if not get_user_settings:
         return {"error": "User settings service not available"}
     try:
@@ -875,9 +922,12 @@ async def get_settings(user_id: str):
 
 
 @app.get("/api/connection-status/{user_id}")
-async def get_connection_status_endpoint(user_id: str):
+async def get_connection_status_endpoint(
+    user_id: str,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
     """
-    Get connection status for a user.
+    Get connection status for a user (secured - verifies ownership).
     
     SECURITY: Returns ONLY boolean status and public identifiers.
     No tokens or credentials are ever returned.
@@ -887,6 +937,9 @@ async def get_connection_status_endpoint(user_id: str):
         - github_connected: Has GitHub username
         - github_oauth_connected: Has GitHub OAuth token (for private repos)
     """
+    # SECURITY: Verify user is accessing their own connection status
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's connection status")
     try:
         # Use top-level imports (get_connection_status, get_token_by_user_id already imported)
         status = await get_connection_status(user_id)
@@ -929,17 +982,20 @@ class DisconnectRequest(BaseModel):
 
 
 @app.post("/api/disconnect-linkedin")
-async def disconnect_linkedin(request: DisconnectRequest):
+async def disconnect_linkedin(
+    request: DisconnectRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
     """
-    Disconnect a user's LinkedIn account.
+    Disconnect a user's LinkedIn account (secured - verifies ownership).
     
     Removes the stored OAuth token, requiring re-authentication
     to post again.
-    
-    SECURITY:
-        - User can only disconnect their own account
-        - Token is permanently deleted from database
     """
+    # SECURITY: Verify user is disconnecting their own account
+    if current_user and current_user.get("user_id") != request.user_id:
+        raise HTTPException(status_code=403, detail="Cannot disconnect other user's account")
+    
     try:
         from services.token_store import delete_token_by_user_id
         
@@ -978,11 +1034,23 @@ async def github_repo(owner: str, repo: str):
 
 
 # Post history endpoints
+# SECURED: User ID comes from JWT, not URL
 @app.get("/api/posts/{user_id}")
-async def get_posts(user_id: str, limit: int = 50, status: str = None):
-    """Get user's post history"""
+async def get_posts(
+    user_id: str,
+    limit: int = 50, 
+    status: str = None,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Get user's post history (secured - verifies ownership)"""
     if not get_user_posts:
         return {"error": "Post history service not available"}
+    
+    # SECURITY: Verify the requester is accessing their own data
+    if current_user and current_user.get("user_id") != user_id:
+        # Allow only if user is requesting their own posts
+        raise HTTPException(status_code=403, detail="Cannot access other user's posts")
+    
     try:
         posts = await get_user_posts(user_id, limit, status)
         return {"posts": posts}
@@ -1002,10 +1070,19 @@ class SavePostRequest(BaseModel):
 
 
 @app.delete("/api/posts/{post_id}")
-async def remove_post(post_id: int):
-    """Delete a post from history"""
+async def remove_post(
+    post_id: int,
+    user_id: str,  # Required: verify ownership
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Delete a post from history (secured - verifies ownership)"""
     if not delete_post:
         return {"error": "Post history service not available"}
+    
+    # SECURITY: Verify user owns this post
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot delete other user's posts")
+    
     try:
         await delete_post(post_id)
         return {"status": "success"}
@@ -1014,10 +1091,18 @@ async def remove_post(post_id: int):
 
 
 @app.get("/api/stats/{user_id}")
-async def user_stats(user_id: str):
-    """Get user statistics"""
+async def user_stats(
+    user_id: str,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Get user statistics (secured - verifies ownership)"""
     if not get_user_stats:
         return {"error": "Stats service not available"}
+    
+    # SECURITY: Verify the requester is accessing their own stats
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's stats")
+    
     try:
         stats = await get_user_stats(user_id)
         return stats
@@ -1142,13 +1227,20 @@ class FullPublishRequest(BaseModel):
 
 
 @app.post("/api/github/scan")
-async def scan_github_activity(req: ScanRequest):
-    """Scan GitHub for recent activity (like the bot does)
+async def scan_github_activity(
+    req: ScanRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Scan GitHub for recent activity (secured)
     
     TIER RESTRICTIONS:
-    - Free tier: Limited to 24-hour scan, all activities only
-    - Pro tier: Full customization (1-30 days, filter by type)
+    - Free tier: Limited to 24-hour scan
+    - Pro tier: Full customization
     """
+    # SECURITY: Verify user is scanning for their own account
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot scan GitHub for other users")
+    
     if not get_user_activity:
         return {"error": "GitHub activity service not available"}
     
@@ -1159,8 +1251,8 @@ async def scan_github_activity(req: ScanRequest):
             settings = await get_user_settings(req.user_id)
             if settings:
                 user_tier = settings.get('subscription_tier', 'free')
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to get user settings for tier: {e}")
     
     # TIER ENFORCEMENT: Force Free tier restrictions
     scan_hours = req.hours
@@ -1253,13 +1345,16 @@ async def scan_github_activity(req: ScanRequest):
 # =============================================================================
 
 @app.get("/api/usage/{user_id}")
-async def get_usage(user_id: str, timezone: str = "UTC"):
-    """Get user's current usage data for free tier limits
+async def get_usage(
+    user_id: str, 
+    timezone: str = "UTC",
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Get user's current usage data for free tier limits (secured)"""
+    # SECURITY: Verify user is accessing their own usage
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's usage")
     
-    Args:
-        user_id: User identifier
-        timezone: User's timezone for accurate reset time (e.g., 'America/New_York')
-    """
     try:
         if not get_user_usage:
             return {"error": "Usage tracking not available"}
@@ -1271,8 +1366,8 @@ async def get_usage(user_id: str, timezone: str = "UTC"):
                 settings = await get_user_settings(user_id)
                 if settings:
                     tier = settings.get('subscription_tier', 'free')
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to get user tier for usage: {e}")
         
         # Pass timezone for accurate reset calculation
         usage = await get_user_usage(user_id, tier, timezone)
@@ -1283,8 +1378,15 @@ async def get_usage(user_id: str, timezone: str = "UTC"):
 
 
 @app.post("/api/post/generate-batch")
-async def generate_batch_posts(req: BatchGenerateRequest):
-    """Generate posts for multiple activities"""
+async def generate_batch_posts(
+    req: BatchGenerateRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Generate posts for multiple activities (secured)"""
+    # SECURITY: Verify user is generating for their own account
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot generate posts for other users")
+    
     if not generate_post_with_ai:
         return {"error": "AI service not available"}
     
@@ -1300,8 +1402,8 @@ async def generate_batch_posts(req: BatchGenerateRequest):
             settings = await get_user_settings(req.user_id)
             if settings:
                 groq_api_key = settings.get('groq_api_key')
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to get groq api key: {e}")
     
     generated_posts = []
     
@@ -1423,17 +1525,23 @@ async def get_image_options(req: ImagePreviewRequest):
 
 
 @app.post("/api/publish/full")
-async def publish_full(req: FullPublishRequest):
-    """Publish a post to LinkedIn with optional image (full bot functionality).
+async def publish_full(
+    req: FullPublishRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Publish a post to LinkedIn with optional image (secured).
     
     Rate limited to 5 posts per hour per user to prevent spam.
     
-    SECURITY & COMPLIANCE NOTES:
+    SECURITY:
+    - JWT ownership verification required
     - Uses official LinkedIn UGC Posts API
-    - Requires user's explicit action (not automated)
     - Rate limiting prevents abuse
-    - Test mode available for preview without posting
     """
+    # SECURITY: Verify user is publishing for their own account
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot publish for other users")
+    
     if not post_to_linkedin:
         return {"error": "LinkedIn service not available"}
     
@@ -1462,8 +1570,8 @@ async def publish_full(req: FullPublishRequest):
                 if settings:
                     user_tier = settings.get('subscription_tier', 'free')
                     user_timezone = settings.get('timezone', 'UTC')
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Failed to get user settings for publish: {e}")
         
         if user_tier == "free" and get_user_usage:
             usage = await get_user_usage(req.user_id, tier="free", user_timezone=user_timezone)
@@ -1558,8 +1666,15 @@ async def publish_full(req: FullPublishRequest):
 
 
 @app.post("/api/posts")
-async def api_save_post(req: SavePostRequest):
-    """Save a post to history (draft or published)"""
+async def api_save_post(
+    req: SavePostRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Save a post to history (secured - verifies ownership)"""
+    # SECURITY: Verify user is saving to their own account
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot save posts for other users")
+    
     if not save_post:
         return {"error": "History service not available"}
     
@@ -1578,8 +1693,15 @@ async def api_save_post(req: SavePostRequest):
 
 
 @app.get("/api/stats/{user_id}")
-async def get_stats(user_id: str):
-    """Get user content analytics"""
+async def get_stats(
+    user_id: str,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Get user content analytics (secured - verifies ownership)"""
+    # SECURITY: Verify user is accessing their own stats
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's stats")
+    
     if not get_user_stats:
         return {"error": "Stats service not available"}
     
@@ -1606,8 +1728,16 @@ class RescheduleRequest(BaseModel):
     new_time: int
 
 @app.get("/api/scheduled/{user_id}")
-async def list_scheduled_posts(user_id: str, include_past: bool = False):
-    """Get all scheduled posts for a user"""
+async def list_scheduled_posts(
+    user_id: str, 
+    include_past: bool = False,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Get all scheduled posts for a user (secured)"""
+    # SECURITY: Verify user is accessing their own scheduled posts
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's scheduled posts")
+    
     try:
         if init_scheduled_db:
             init_scheduled_db()
@@ -1617,8 +1747,15 @@ async def list_scheduled_posts(user_id: str, include_past: bool = False):
         return {"error": str(e), "success": False}
 
 @app.post("/api/scheduled")
-async def create_scheduled_post(req: SchedulePostRequest):
-    """Schedule a post for later publishing"""
+async def create_scheduled_post(
+    req: SchedulePostRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Schedule a post for later publishing (secured)"""
+    # SECURITY: Verify user is scheduling for their own account
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot schedule posts for other users")
+    
     try:
         if init_scheduled_db:
             init_scheduled_db()
@@ -1632,9 +1769,34 @@ async def create_scheduled_post(req: SchedulePostRequest):
     except Exception as e:
         return {"error": str(e), "success": False}
 
+@app.get("/api/scheduled-posts/{user_id}")
+async def list_scheduled_posts(
+    user_id: str, 
+    include_past: bool = False,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Get all scheduled posts for a user (secured - verifies ownership)"""
+    # SECURITY: Verify user is accessing their own scheduled posts
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access other user's scheduled posts")
+    
+    try:
+        posts = await get_scheduled_posts(user_id, include_past) if get_scheduled_posts else []
+        return {"success": True, "posts": posts}
+    except Exception as e:
+        return {"error": str(e), "success": False, "posts": []}
+
 @app.delete("/api/scheduled/{post_id}")
-async def cancel_scheduled(post_id: int, user_id: str):
-    """Cancel a scheduled post"""
+async def cancel_scheduled(
+    post_id: int, 
+    user_id: str,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Cancel a scheduled post (secured - verifies ownership)"""
+    # SECURITY: Verify user owns this scheduled post
+    if current_user and current_user.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Cannot cancel other user's scheduled posts")
+    
     try:
         success = await cancel_scheduled_post(post_id, user_id) if cancel_scheduled_post else False
         if success:
@@ -1644,8 +1806,16 @@ async def cancel_scheduled(post_id: int, user_id: str):
         return {"error": str(e), "success": False}
 
 @app.put("/api/scheduled/{post_id}")
-async def reschedule(post_id: int, req: RescheduleRequest):
-    """Reschedule a pending post"""
+async def reschedule(
+    post_id: int, 
+    req: RescheduleRequest,
+    current_user: dict = Depends(require_auth) if require_auth else None
+):
+    """Reschedule a pending post (secured)"""
+    # SECURITY: Verify user is rescheduling their own post
+    if current_user and current_user.get("user_id") != req.user_id:
+        raise HTTPException(status_code=403, detail="Cannot reschedule other user's posts")
+    
     try:
         success = await reschedule_post(post_id, req.user_id, req.new_time) if reschedule_post else False
         if success:

@@ -12,7 +12,7 @@ interface StatsProps {
     loading: boolean;
 }
 
-export const StatsOverview: React.FC<StatsProps> = ({ stats, loading }) => {
+const StatsOverviewComponent: React.FC<StatsProps> = ({ stats, loading }) => {
     // Get growth data
     const growthPercent = stats?.growth_percentage ?? 0;
     const isPositive = growthPercent >= 0;
@@ -86,3 +86,6 @@ export const StatsOverview: React.FC<StatsProps> = ({ stats, loading }) => {
         </div>
     );
 };
+
+// Memoize to prevent re-renders when props haven't changed
+export const StatsOverview = React.memo(StatsOverviewComponent);

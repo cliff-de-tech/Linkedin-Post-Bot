@@ -181,7 +181,8 @@ async def publish(req: PostRequest):
     accounts = []
     try:
         accounts = await get_all_tokens() if get_all_tokens else []
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to get tokens: {e}")
         accounts = []
 
     if accounts:
@@ -189,7 +190,8 @@ async def publish(req: PostRequest):
         linkedin_urn = account.get('linkedin_user_urn')
         try:
             token = await get_access_token_for_urn(linkedin_urn)
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Failed to get access token: {e}")
             token = None
 
         if get_relevant_image and token:

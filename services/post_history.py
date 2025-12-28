@@ -205,8 +205,9 @@ async def get_daily_post_count(user_id: str, user_timezone: str = "UTC") -> int:
         if tz_key.upper() == "UTC":
             tz_key = "Etc/UTC"
         user_tz = ZoneInfo(tz_key)
-    except Exception:
+    except Exception as e:
         # Fallback to UTC using datetime.timezone
+        logger.debug(f"Invalid timezone '{user_timezone}': {e}")
         user_tz = datetime.timezone.utc
     
     now_local = datetime.datetime.now(user_tz)
@@ -234,7 +235,8 @@ async def get_scheduled_post_count(user_id: str) -> int:
             WHERE user_id = $1 AND status = 'pending'
         """, [user_id])
         return row['count'] if row else 0
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to get scheduled count: {e}")
         return 0
 
 
@@ -255,8 +257,9 @@ async def get_user_usage(user_id: str, tier: str = "free", user_timezone: str = 
         if tz_key.upper() == "UTC":
             tz_key = "Etc/UTC"
         user_tz = ZoneInfo(tz_key)
-    except Exception:
+    except Exception as e:
         # Fallback to UTC using datetime.timezone
+        logger.debug(f"Invalid timezone '{user_timezone}': {e}")
         user_tz = datetime.timezone.utc
     
     now_local = datetime.datetime.now(user_tz)

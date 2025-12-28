@@ -63,9 +63,10 @@ def verify_clerk_token(token: str) -> Optional[dict]:
     
     Returns None if verification fails.
     """
-    if not CLERK_ISSUER:
-        # If Clerk is not configured, skip verification (development mode)
-        print("⚠️  Clerk issuer not configured, skipping JWT verification")
+    # Dev mode: only if EXPLICITLY enabled AND no issuer configured
+    DEV_MODE = os.getenv('DEV_MODE', 'false').lower() == 'true'
+    if not CLERK_ISSUER and DEV_MODE:
+        print("⚠️  DEV MODE: Clerk not configured, using test user")
         return {"sub": "dev_user", "dev_mode": True}
     
     signing_key = get_signing_key(token)
