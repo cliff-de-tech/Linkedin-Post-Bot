@@ -17,8 +17,8 @@ export default function SignUpPage() {
 
     return (
         <div className="min-h-screen flex">
-            {/* Animated Background */}
-            <InteractiveBackground />
+            {/* Animated Background - override opacity for visibility */}
+            <InteractiveBackground className="!opacity-30 !z-10" />
             {/* Left Side - Branding */}
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 relative overflow-hidden">
                 {/* Background Pattern */}
