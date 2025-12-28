@@ -54,7 +54,7 @@ validate_environment()
 from services.scheduler import start_scheduler_async, stop_scheduler
 
 # Database
-from services.db import connect_db, disconnect_db, init_tables
+from services.db import connect_db, disconnect_db
 
 logger.info("Core services imported successfully")
 
@@ -108,9 +108,13 @@ async def global_exception_handler(request: Request, exc: Exception):
 # =============================================================================
 @app.on_event("startup")
 async def startup():
-    """Initialize database connection pool, create tables, and start scheduler."""
+    """Initialize database connection pool and start scheduler.
+    
+    Note: Schema is managed by Alembic migrations.
+    Run 'alembic upgrade head' to apply migrations.
+    """
     await connect_db()
-    await init_tables()
+    # NOTE: init_tables() removed - use Alembic migrations instead
     await start_scheduler_async()
     logger.info("Application startup complete")
 

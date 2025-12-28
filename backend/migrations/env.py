@@ -43,8 +43,9 @@ if config.config_file_name is not None:
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    # Local development fallback
-    DATABASE_URL = "sqlite+aiosqlite:///./backend/dev_database.db"
+    # Local development fallback - use absolute path
+    sqlite_path = backend_dir / "dev_database.db"
+    DATABASE_URL = f"sqlite+aiosqlite:///{sqlite_path}"
 else:
     # Handle Heroku/Render postgres:// -> postgresql+asyncpg://
     if DATABASE_URL.startswith("postgres://"):
