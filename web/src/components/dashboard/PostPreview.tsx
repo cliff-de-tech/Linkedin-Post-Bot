@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { showToast } from '@/lib/toast';
 
 interface PostPreviewProps {
@@ -147,11 +148,14 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
 
                         {/* Image if present */}
                         {imageUrl && (
-                            <div className="border-t border-gray-100 dark:border-gray-700">
-                                <img
+                            <div className="border-t border-gray-100 dark:border-gray-700 relative w-full h-32">
+                                <Image
                                     src={imageUrl}
                                     alt="Post image"
-                                    className="w-full h-32 object-cover"
+                                    fill
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                    className="object-cover"
+                                    priority
                                 />
                             </div>
                         )}

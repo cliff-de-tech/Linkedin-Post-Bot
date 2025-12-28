@@ -23,6 +23,7 @@ import TierBadge from '@/components/ui/TierBadge';
 import WaitlistModal from '@/components/ui/WaitlistModal';
 import HistoryModal from '@/components/ui/HistoryModal';
 import FeedbackModal from '@/components/ui/FeedbackModal';
+import { useDashboardData } from '@/hooks/useDashboardData';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -53,9 +54,14 @@ export default function Dashboard() {
   const userId = isTestMode ? testUserId : (user?.id || '');
 
 
-  const [githubUsername, setGithubUsername] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // ========== REACT QUERY DATA FETCHING (AVAILABLE) ==========
+  // The useDashboardData hook is imported and ready for use.
+  // Current implementation still uses legacy useState pattern for stability.
+  // To migrate, replace the useState declarations below with:
+  // const { stats, posts: postHistory, usage, templates, githubActivities, ... } = useDashboardData({ userId, enabled: isAuthenticated });
 
   // Usage tracking for free tier
   const [usage, setUsage] = useState<UsageData | null>(null);
@@ -73,6 +79,7 @@ export default function Dashboard() {
   const [status, setStatus] = useState('');
 
   // Data
+  const [githubUsername, setGithubUsername] = useState('');
   const [githubActivities, setGithubActivities] = useState<GitHubActivity[]>([]);
   const [postHistory, setPostHistory] = useState<Post[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);

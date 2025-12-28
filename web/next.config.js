@@ -20,6 +20,11 @@ const nextConfig = {
   // Enable SWC minification (faster than Terser)
   swcMinify: true,
 
+  // Remove console.log in production builds
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
   // Security and performance headers
   async headers() {
     return [

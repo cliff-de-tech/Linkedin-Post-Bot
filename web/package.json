@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.5",
+    "@tanstack/react-query": "^5.60.0",
     "axios": "^1.6.0",
     "next": "^14.0.0",
     "react": "^18.2.0",
