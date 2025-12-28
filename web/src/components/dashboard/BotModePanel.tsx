@@ -6,6 +6,7 @@
  */
 import { useState, useCallback, useEffect } from 'react';
 import axios, { AxiosResponse } from 'axios';
+import { useAuth } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import { PostQueuePanel } from './PostQueuePanel';
 import { ImageSelector } from './ImageSelector';
@@ -84,6 +85,7 @@ const AI_MODELS = [
 ];
 
 export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLimitReached = false }: BotModePanelProps) {
+    const { getToken } = useAuth();
 
     // State
     const [activities, setActivities] = useState<Activity[]>([]);
@@ -127,10 +129,13 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
 
         try {
             const hours = searchDays * 24;
+            const token = await getToken();
             const response = await axios.post(`${API_BASE}/api/github/scan`, {
                 user_id: userId,
                 hours: hours,
                 activity_type: activityType !== 'all' ? activityType : undefined
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (response.data.error) {
@@ -181,10 +186,13 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
         const toastId = showToast.loading(`Generating ${toGenerate.length} posts...`);
 
         try {
+            const token = await getToken();
             const response = await axios.post(`${API_BASE}/api/post/generate-batch`, {
                 user_id: userId,
                 activities: toGenerate,
                 style: selectedTemplate
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             showToast.dismiss(toastId);
@@ -273,11 +281,14 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
         setPublishingId(postId);
 
         try {
+            const token = await getToken();
             const response = await axios.post(`${API_BASE}/api/publish/full`, {
                 user_id: userId,
                 post_content: post.content,
                 image_url: post.image_url,
                 test_mode: testMode
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             if (response.data.error) {
