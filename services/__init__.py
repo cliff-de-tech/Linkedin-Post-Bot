@@ -79,6 +79,16 @@ from services.persona_service import (
     save_user_persona,
     build_persona_prompt,
     build_full_persona_context,
+    refresh_learned_patterns,
+)
+
+# =============================================================================
+# Persona Analyzer
+# =============================================================================
+from services.persona_analyzer import (
+    analyze_writing_style,
+    update_learned_patterns,
+    build_style_context,
 )
 
 # =============================================================================
@@ -144,6 +154,11 @@ __all__ = [
     'save_user_persona',
     'build_persona_prompt',
     'build_full_persona_context',
+    'refresh_learned_patterns',
+    # Persona Analyzer
+    'analyze_writing_style',
+    'update_learned_patterns',
+    'build_style_context',
     # Scheduler
     'start_scheduler',
     'start_scheduler_async',

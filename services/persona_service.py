@@ -128,19 +128,53 @@ def build_persona_prompt(persona: dict) -> str:
     return '\\n'.join(parts)
 
 
-async def build_full_persona_context(user_id: str) -> str:
+async def build_full_persona_context(user_id: str, include_learned: bool = True) -> str:
     """
     Get complete persona context for AI prompt injection.
     
     Combines:
     1. User-defined persona settings
-    2. Learned patterns from post history (Phase 2)
+    2. Learned patterns from post history (if available)
     
     Args:
         user_id: Clerk user ID
+        include_learned: Whether to include learned patterns (default True)
         
     Returns:
         Formatted string for AI system prompt
     """
     persona = await get_user_persona(user_id)
-    return build_persona_prompt(persona)
+    
+    # Build base persona context
+    context = build_persona_prompt(persona)
+    
+    # Add learned patterns context if available
+    if include_learned and persona.get('learned_patterns'):
+        try:
+            from services.persona_analyzer import build_style_context
+            learned_context = build_style_context(persona['learned_patterns'])
+            if learned_context:
+                context = context + "\n" + learned_context
+        except ImportError:
+            pass  # persona_analyzer not available
+    
+    return context
+
+
+async def refresh_learned_patterns(user_id: str) -> dict:
+    """
+    Re-analyze user's posts and update learned patterns.
+    
+    Call this when user clicks "Refresh" in PersonaSettings,
+    or periodically after new posts are published.
+    
+    Returns:
+        Updated learned_patterns dict
+    """
+    try:
+        from services.persona_analyzer import update_learned_patterns
+        return await update_learned_patterns(user_id)
+    except ImportError:
+        logger.warning("persona_analyzer not available")
+        return {}
+
