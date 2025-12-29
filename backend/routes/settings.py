@@ -456,8 +456,10 @@ async def get_scheduled_posts(user_id: str):
 
 class ImagePreviewRequest(BaseModel):
     """Request model for image preview."""
-    query: str
+    post_content: Optional[str] = None  # Frontend sends this
+    query: Optional[str] = None  # Alternative parameter
     user_id: Optional[str] = None
+    count: Optional[int] = 6
 
 
 @router.post("/image/preview")
@@ -467,16 +469,47 @@ async def get_image_preview(req: ImagePreviewRequest):
     """
     import os
     import requests
+    import re
     
     try:
+        # Extract search query from post_content or use the query parameter
+        search_query = req.query
+        
+        if req.post_content and not search_query:
+            # Extract meaningful keywords from post content
+            # Remove hashtags, emojis, and common words
+            content = req.post_content.lower()
+            content = re.sub(r'#\w+', '', content)  # Remove hashtags
+            content = re.sub(r'[^\w\s]', '', content)  # Remove punctuation
+            
+            # Get first few meaningful words (skip common words)
+            skip_words = {'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 
+                         'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+                         'would', 'could', 'should', 'may', 'might', 'must', 'shall',
+                         'and', 'or', 'but', 'if', 'then', 'else', 'when', 'at', 'by',
+                         'for', 'with', 'about', 'against', 'between', 'into', 'through',
+                         'during', 'before', 'after', 'above', 'below', 'to', 'from',
+                         'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again',
+                         'further', 'then', 'once', 'here', 'there', 'where', 'why', 'how',
+                         'all', 'each', 'few', 'more', 'most', 'other', 'some', 'such',
+                         'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too',
+                         'very', 'just', 'i', 'we', 'you', 'he', 'she', 'it', 'they', 'my'}
+            
+            words = [w for w in content.split() if w not in skip_words and len(w) > 2]
+            search_query = ' '.join(words[:5]) if words else 'technology programming'
+        
+        if not search_query:
+            search_query = 'technology programming'
+        
         # Try Unsplash API
         unsplash_key = os.getenv("UNSPLASH_ACCESS_KEY")
-        logger.info(f"Unsplash key present: {bool(unsplash_key)}, query: {req.query}")
+        per_page = req.count or 6
+        logger.info(f"Unsplash key present: {bool(unsplash_key)}, query: {search_query}")
         
         if unsplash_key:
             response = requests.get(
                 "https://api.unsplash.com/search/photos",
-                params={"query": req.query, "per_page": 6},
+                params={"query": search_query, "per_page": per_page},
                 headers={"Authorization": f"Client-ID {unsplash_key}"},
                 timeout=10
             )
