@@ -149,6 +149,7 @@ try:
     from routes.feedback import router as feedback_router
     from routes.posts import router as posts_router
     from routes.webhooks import router as webhooks_router
+    from routes.settings import router as settings_router
     
     # Import new modular routers
     from routes.github import router as github_router, auth_router as github_auth_router
@@ -159,6 +160,7 @@ try:
     app.include_router(feedback_router)
     app.include_router(posts_router)
     app.include_router(webhooks_router)
+    app.include_router(settings_router)
     app.include_router(github_router)
     app.include_router(linkedin_router)
     
