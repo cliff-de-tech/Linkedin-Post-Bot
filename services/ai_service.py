@@ -423,7 +423,7 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
                 }
             ],
             model="llama-3.3-70b-versatile",
-            temperature=0.7,
+            temperature=0.85,  # Increased for more variety
             max_tokens=600,
         )
         

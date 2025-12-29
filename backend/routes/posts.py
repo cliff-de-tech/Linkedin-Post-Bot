@@ -144,8 +144,12 @@ async def generate_preview(
     if user_id and build_full_persona_context:
         try:
             persona_context = await build_full_persona_context(user_id)
+            if persona_context:
+                print(f"✅ Persona loaded for user {user_id[:8]}...: {len(persona_context)} chars")
+            else:
+                print(f"⚠️ No persona found for user {user_id[:8]}...")
         except Exception as e:
-            print(f"Failed to get persona: {type(e).__name__}")
+            print(f"Failed to get persona: {type(e).__name__}: {e}")
     
     post = generate_post_with_ai(req.context, groq_api_key=groq_api_key, persona_context=persona_context)
     return {"post": post}

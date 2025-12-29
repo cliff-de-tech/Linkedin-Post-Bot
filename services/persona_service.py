@@ -79,14 +79,25 @@ def build_persona_prompt(persona: dict) -> str:
     Returns:
         String to append to AI system prompt
     """
-    if not persona or persona == DEFAULT_PERSONA:
+    if not persona:
         return ""
     
-    parts = ["\\n\\n=== USER PERSONA ==="]
+    # Check if persona has any custom content
+    has_custom_content = (
+        persona.get('bio') or 
+        persona.get('topics') or 
+        persona.get('signature_style') or
+        persona.get('tone') != 'professional'
+    )
+    
+    if not has_custom_content:
+        return ""
+    
+    parts = ["\n\n=== USER PERSONA ==="]
     parts.append("Write as this specific person, matching their voice and style:")
     
     if persona.get('bio'):
-        parts.append(f"\\nWHO THEY ARE: {persona['bio']}")
+        parts.append(f"\nWHO THEY ARE: {persona['bio']}")
     
     if persona.get('tone'):
         tone_descriptions = {
@@ -96,14 +107,14 @@ def build_persona_prompt(persona: dict) -> str:
             "inspirational": "Motivational, uplifting, focuses on growth and possibility"
         }
         tone_desc = tone_descriptions.get(persona['tone'], persona['tone'])
-        parts.append(f"\\nTONE: {tone_desc}")
+        parts.append(f"\nTONE: {tone_desc}")
     
     if persona.get('topics') and len(persona['topics']) > 0:
         topics = ', '.join(persona['topics'])
-        parts.append(f"\\nCORE TOPICS: {topics}")
+        parts.append(f"\nCORE TOPICS: {topics}")
     
     if persona.get('signature_style'):
-        parts.append(f"\\nSIGNATURE STYLE: {persona['signature_style']}")
+        parts.append(f"\nSIGNATURE STYLE: {persona['signature_style']}")
     
     if persona.get('emoji_usage'):
         emoji_map = {
@@ -112,20 +123,22 @@ def build_persona_prompt(persona: dict) -> str:
             "moderate": "Use emojis thoughtfully to enhance key points",
             "heavy": "Use emojis liberally throughout the post"
         }
-        parts.append(f"\\nEMOJI USAGE: {emoji_map.get(persona['emoji_usage'], 'moderate')}")
+        parts.append(f"\nEMOJI USAGE: {emoji_map.get(persona['emoji_usage'], 'moderate')}")
     
     # Phase 2: Learned patterns from post history
     if persona.get('learned_patterns'):
         patterns = persona['learned_patterns']
         if patterns.get('avg_length'):
-            parts.append(f"\\nTYPICAL POST LENGTH: Around {patterns['avg_length']} words")
+            parts.append(f"\nTYPICAL POST LENGTH: Around {patterns['avg_length']} words")
         if patterns.get('common_phrases'):
             phrases = ', '.join(patterns['common_phrases'][:3])
-            parts.append(f"\\nCOMMON PHRASES: {phrases}")
+            parts.append(f"\nCOMMON PHRASES: {phrases}")
     
-    parts.append("\\n=== END PERSONA ===")
+    parts.append("\n=== END PERSONA ===")
     
-    return '\\n'.join(parts)
+    logger.info(f"Built persona prompt with {len(parts)} parts")
+    
+    return '\n'.join(parts)
 
 
 async def build_full_persona_context(user_id: str, include_learned: bool = True) -> str:
