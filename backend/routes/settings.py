@@ -498,3 +498,164 @@ async def get_image_preview(req: ImagePreviewRequest):
     except Exception as e:
         logger.error(f"Error fetching images: {e}")
         return {"images": [], "error": str(e)}
+
+
+# =============================================================================
+# TEMPLATES ENDPOINT
+# =============================================================================
+@router.get("/templates")
+async def get_templates():
+    """Get available post templates."""
+    templates = [
+        {"id": "standard", "name": "Standard", "description": "Professional LinkedIn post style"},
+        {"id": "casual", "name": "Casual", "description": "Friendly and conversational tone"},
+        {"id": "technical", "name": "Technical", "description": "For technical deep dives"},
+        {"id": "storytelling", "name": "Storytelling", "description": "Narrative-driven content"},
+        {"id": "educational", "name": "Educational", "description": "Teaching and sharing knowledge"},
+    ]
+    return templates
+
+
+# =============================================================================
+# POSTS HISTORY ENDPOINT
+# =============================================================================
+@router.get("/posts/{user_id}")
+async def get_posts_history(user_id: str, limit: int = 10):
+    """Get post history for a user."""
+    try:
+        from services.db import get_database
+        db = get_database()
+        
+        rows = await db.fetch_all(
+            """SELECT id, post_content, post_type, status, created_at 
+               FROM posts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2""",
+            [user_id, limit]
+        )
+        
+        return [{"id": row['id'], "content": row['post_content'], "type": row.get('post_type', 'push'),
+                 "status": row['status'], "created_at": row['created_at']} for row in rows]
+    except Exception as e:
+        logger.error(f"Error getting posts history: {e}")
+        return []
+
+
+# =============================================================================
+# SCHEDULED POSTS CRUD
+# =============================================================================
+class ScheduleRequest(BaseModel):
+    user_id: str
+    post_content: str
+    scheduled_time: int
+    timezone: Optional[str] = "UTC"
+    image_url: Optional[str] = None
+
+
+@router.post("/scheduled")
+async def schedule_post(req: ScheduleRequest):
+    """Schedule a post for later."""
+    import time
+    try:
+        from services.db import get_database
+        db = get_database()
+        now = int(time.time())
+        await db.execute(
+            """INSERT INTO scheduled_posts (user_id, post_content, image_url, scheduled_time, status, created_at)
+               VALUES ($1, $2, $3, $4, 'pending', $5)""",
+            [req.user_id, req.post_content, req.image_url, req.scheduled_time, now]
+        )
+        return {"success": True, "message": "Post scheduled"}
+    except Exception as e:
+        logger.error(f"Error scheduling post: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/scheduled/{user_id}")
+async def get_scheduled(user_id: str):
+    """Get scheduled posts for a user."""
+    try:
+        from services.db import get_database
+        db = get_database()
+        rows = await db.fetch_all(
+            """SELECT id, post_content, image_url, scheduled_time, status, created_at 
+               FROM scheduled_posts WHERE user_id = $1 AND status = 'pending'
+               ORDER BY scheduled_time ASC LIMIT 50""", [user_id]
+        )
+        return {"scheduled_posts": [dict(row) for row in rows]}
+    except Exception as e:
+        logger.error(f"Error getting scheduled posts: {e}")
+        return {"scheduled_posts": []}
+
+
+@router.delete("/scheduled/{post_id}")
+async def delete_scheduled(post_id: int, user_id: str):
+    """Delete a scheduled post."""
+    try:
+        from services.db import get_database
+        db = get_database()
+        await db.execute("DELETE FROM scheduled_posts WHERE id = $1 AND user_id = $2", [post_id, user_id])
+        return {"success": True}
+    except Exception as e:
+        logger.error(f"Error deleting scheduled post: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# PUBLISH FULL (Bot Mode)
+# =============================================================================
+class PublishFullRequest(BaseModel):
+    user_id: str
+    post_content: str
+    image_url: Optional[str] = None
+    test_mode: Optional[bool] = False
+
+
+@router.post("/publish/full")
+async def publish_full(req: PublishFullRequest):
+    """Publish a post with optional image to LinkedIn."""
+    try:
+        if req.test_mode:
+            return {"success": True, "test_mode": True, "message": "Test mode - post would be published"}
+        
+        if get_token_by_user_id:
+            token_data = await get_token_by_user_id(req.user_id)
+            if not token_data or not token_data.get('access_token'):
+                return {"success": False, "error": "Not connected to LinkedIn"}
+            
+            try:
+                from services.linkedin_api import post_to_linkedin
+                result = await post_to_linkedin(
+                    user_urn=token_data.get('linkedin_user_urn'),
+                    access_token=token_data.get('access_token'),
+                    post_content=req.post_content,
+                    image_url=req.image_url
+                )
+                return {"success": True, "post_id": result.get("id")}
+            except Exception as e:
+                logger.error(f"LinkedIn post error: {e}")
+                return {"success": False, "error": str(e)}
+        
+        return {"success": False, "error": "Token service not available"}
+    except Exception as e:
+        logger.error(f"Error in publish/full: {e}")
+        return {"success": False, "error": str(e)}
+
+
+# =============================================================================
+# CONTACT FORM
+# =============================================================================
+class ContactRequest(BaseModel):
+    name: str
+    email: str
+    subject: Optional[str] = "General Inquiry"
+    message: str
+
+
+@router.post("/contact")
+async def submit_contact(req: ContactRequest):
+    """Handle contact form submissions."""
+    try:
+        logger.info(f"Contact form: {req.name} ({req.email}): {req.subject}")
+        return {"success": True, "message": "Message received. We'll get back to you soon!"}
+    except Exception as e:
+        logger.error(f"Error processing contact form: {e}")
+        return {"success": False, "error": str(e)}
