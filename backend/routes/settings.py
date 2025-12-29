@@ -155,13 +155,17 @@ async def get_connection_status(user_id: str):
         "token_expires_at": None
     }
     
+    logger.info(f"Checking connection status for user: {user_id}")
+    
     # Check LinkedIn token from accounts table
     if get_token_by_user_id:
         try:
             token = await get_token_by_user_id(user_id)
+            logger.info(f"Token query result: {token is not None}")
             if token:
                 # LinkedIn is connected if we have an access_token (not just URN)
                 has_access_token = bool(token.get("access_token"))
+                logger.info(f"Has access_token: {has_access_token}")
                 status["linkedin_connected"] = has_access_token
                 status["linkedin_urn"] = token.get("linkedin_user_urn") or ""
                 status["token_expires_at"] = token.get("expires_at")
@@ -173,7 +177,33 @@ async def get_connection_status(user_id: str):
                 if token.get("github_access_token"):
                     status["github_oauth_connected"] = True
         except Exception as e:
-            logger.debug(f"Error getting token: {e}")
+            logger.error(f"Error getting token: {e}", exc_info=True)
+    else:
+        logger.warning("get_token_by_user_id is None - import failed")
+    
+    # Fallback: Direct database query if token_store didn't work
+    if not status["linkedin_connected"]:
+        try:
+            from services.db import get_database
+            db = get_database()
+            row = await db.fetch_one(
+                "SELECT access_token, linkedin_user_urn, github_username, github_access_token, expires_at FROM accounts WHERE user_id = $1",
+                [user_id]
+            )
+            if row:
+                row_dict = dict(row)
+                logger.info(f"Direct DB query found row with access_token: {bool(row_dict.get('access_token'))}")
+                if row_dict.get("access_token"):
+                    status["linkedin_connected"] = True
+                    status["linkedin_urn"] = row_dict.get("linkedin_user_urn") or ""
+                    status["token_expires_at"] = row_dict.get("expires_at")
+                if row_dict.get("github_username"):
+                    status["github_username"] = row_dict.get("github_username")
+                    status["github_connected"] = True
+                if row_dict.get("github_access_token"):
+                    status["github_oauth_connected"] = True
+        except Exception as e:
+            logger.error(f"Direct DB fallback error: {e}")
     
     # Also check user_settings for github_username (may be set there instead)
     if get_user_settings and not status["github_username"]:
@@ -198,4 +228,5 @@ async def get_connection_status(user_id: str):
         except Exception as e:
             logger.debug(f"Error getting GitHub token: {e}")
     
+    logger.info(f"Final status: linkedin={status['linkedin_connected']}, github={status['github_connected']}")
     return status
