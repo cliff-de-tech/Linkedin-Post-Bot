@@ -89,6 +89,13 @@ class PostRequest(BaseModel):
     user_id: Optional[str] = None
 
 
+class BatchGenerateRequest(BaseModel):
+    """Request for batch post generation in Bot Mode."""
+    user_id: str
+    activities: list  # List of GitHub activities to generate posts for
+    style: Optional[str] = "standard"  # Template style
+
+
 # =============================================================================
 # ENDPOINTS
 # =============================================================================
@@ -142,6 +149,88 @@ async def generate_preview(
     
     post = generate_post_with_ai(req.context, groq_api_key=groq_api_key, persona_context=persona_context)
     return {"post": post}
+
+
+@router.post("/generate-batch")
+async def generate_batch(req: BatchGenerateRequest):
+    """Generate multiple posts for Bot Mode.
+    
+    Takes a list of GitHub activities and generates posts for each one.
+    Returns the list of generated posts with success/failure counts.
+    """
+    if not generate_post_with_ai:
+        return {"error": "generate_post_with_ai not available (import failed)"}
+    
+    user_id = req.user_id
+    activities = req.activities
+    style = req.style or "standard"
+    
+    # Get user settings for API key and persona
+    groq_api_key = None
+    persona_context = None
+    
+    if user_id and get_user_settings:
+        try:
+            settings = await get_user_settings(user_id)
+            if settings:
+                groq_api_key = settings.get('groq_api_key')
+        except Exception as e:
+            print(f"Failed to get user settings: {type(e).__name__}")
+    
+    if user_id and build_full_persona_context:
+        try:
+            persona_context = await build_full_persona_context(user_id)
+        except Exception as e:
+            print(f"Failed to get persona: {type(e).__name__}")
+    
+    # Generate posts for each activity
+    generated_posts = []
+    success_count = 0
+    failed_count = 0
+    
+    for activity in activities:
+        try:
+            # Build context from activity
+            context = {
+                "type": activity.get("type", "push"),
+                "repo": activity.get("repo") or activity.get("full_repo", "").split("/")[-1],
+                "full_repo": activity.get("full_repo", ""),
+                "commits": activity.get("commits", 1),
+                "date": activity.get("date", activity.get("time_ago", "recently")),
+                "title": activity.get("title", ""),
+                "description": activity.get("description", ""),
+                "tone": style  # Use the selected template/style
+            }
+            
+            # Generate post with AI
+            post_content = generate_post_with_ai(
+                context, 
+                groq_api_key=groq_api_key, 
+                persona_context=persona_context
+            )
+            
+            if post_content:
+                generated_posts.append({
+                    "id": f"gen_{success_count}_{activity.get('id', '')}",
+                    "content": post_content,
+                    "activity": activity,
+                    "style": style,
+                    "status": "draft"
+                })
+                success_count += 1
+            else:
+                failed_count += 1
+                
+        except Exception as e:
+            print(f"Failed to generate post for activity: {e}")
+            failed_count += 1
+    
+    return {
+        "posts": generated_posts,
+        "generated_count": success_count,
+        "failed_count": failed_count,
+        "total": len(activities)
+    }
 
 
 @router.post("/publish")
