@@ -30,7 +30,9 @@ except ImportError:
 
 try:
     from services.token_store import get_token_by_user_id, get_github_token
-except ImportError:
+    logger.info("✅ token_store imports successful")
+except ImportError as e:
+    logger.warning(f"⚠️ token_store import failed: {e}")
     get_token_by_user_id = None
     get_github_token = None
 
@@ -658,25 +660,29 @@ async def publish_full(req: PublishFullRequest):
         if req.test_mode:
             return {"success": True, "test_mode": True, "message": "Test mode - post would be published"}
         
-        if get_token_by_user_id:
-            token_data = await get_token_by_user_id(req.user_id)
-            if not token_data or not token_data.get('access_token'):
-                return {"success": False, "error": "Not connected to LinkedIn"}
-            
-            try:
-                from services.linkedin_api import post_to_linkedin
-                result = await post_to_linkedin(
-                    user_urn=token_data.get('linkedin_user_urn'),
-                    access_token=token_data.get('access_token'),
-                    post_content=req.post_content,
-                    image_url=req.image_url
-                )
-                return {"success": True, "post_id": result.get("id")}
-            except Exception as e:
-                logger.error(f"LinkedIn post error: {e}")
-                return {"success": False, "error": str(e)}
+        # Import token service directly to avoid module-level import issues
+        try:
+            from services.token_store import get_token_by_user_id as get_token
+        except ImportError as e:
+            logger.error(f"Failed to import token_store: {e}")
+            return {"success": False, "error": "Token service import failed"}
         
-        return {"success": False, "error": "Token service not available"}
+        token_data = await get_token(req.user_id)
+        if not token_data or not token_data.get('access_token'):
+            return {"success": False, "error": "Not connected to LinkedIn. Please connect your account in Settings."}
+        
+        try:
+            from services.linkedin_api import post_to_linkedin
+            result = await post_to_linkedin(
+                user_urn=token_data.get('linkedin_user_urn'),
+                access_token=token_data.get('access_token'),
+                post_content=req.post_content,
+                image_url=req.image_url
+            )
+            return {"success": True, "post_id": result.get("id")}
+        except Exception as e:
+            logger.error(f"LinkedIn post error: {e}")
+            return {"success": False, "error": str(e)}
     except Exception as e:
         logger.error(f"Error in publish/full: {e}")
         return {"success": False, "error": str(e)}
