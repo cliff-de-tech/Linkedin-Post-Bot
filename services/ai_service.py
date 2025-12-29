@@ -322,7 +322,25 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
         style: Post style template ('standard', 'build_in_public', 'thought_leadership', 'job_search')
         persona_context: Optional pre-built persona prompt string from persona_service.build_persona_prompt()
     """
+    import random
+    import uuid
+    
     logger.info(f"🧠 AI service: generating {style} post...")
+    
+    # Generate unique seed for this request
+    unique_seed = str(uuid.uuid4())[:8]
+    random_angle = random.choice([
+        "focus on a surprising insight",
+        "lead with a bold statement",
+        "start with a question",
+        "share a mini-story",
+        "highlight a lesson learned",
+        "express genuine excitement",
+        "be reflective and thoughtful",
+        "add some humor",
+        "be motivational",
+        "be conversational"
+    ])
     
     # Determine which API key to use
     api_key = groq_api_key or GROQ_API_KEY
@@ -339,6 +357,25 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
     
     # Select prompt based on style
     system_prompt = get_prompt_for_style(style)
+    
+    # Add uniqueness instructions
+    uniqueness_prompt = f"""
+
+=== CRITICAL: UNIQUENESS REQUIREMENT ===
+Generation ID: {unique_seed}
+Creative Angle: {random_angle}
+
+YOU MUST GENERATE A COMPLETELY UNIQUE POST:
+- NEVER repeat common LinkedIn phrases like "I'm excited to share" or "Here's what I learned"
+- Use fresh metaphors and analogies
+- Start with a hook that's different from typical posts
+- Vary your sentence structure and length
+- Be creative, unexpected, and authentic
+- Each post should feel like a new creative work
+=== END UNIQUENESS ===
+"""
+    
+    system_prompt = system_prompt + uniqueness_prompt
     
     # Inject persona context if provided
     if persona_context:
@@ -423,7 +460,7 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
                 }
             ],
             model="llama-3.3-70b-versatile",
-            temperature=0.85,  # Increased for more variety
+            temperature=0.95,  # Maximum creativity for unique posts
             max_tokens=600,
         )
         
