@@ -24,6 +24,7 @@ import WaitlistModal from '@/components/ui/WaitlistModal';
 import HistoryModal from '@/components/ui/HistoryModal';
 import FeedbackModal from '@/components/ui/FeedbackModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -111,6 +112,9 @@ export default function Dashboard() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackAutoTriggered, setFeedbackAutoTriggered] = useState(false);
   const [sessionPublishCount, setSessionPublishCount] = useState(0);
+
+  // Mobile menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Manual mode image state
   const [manualSelectedImage, setManualSelectedImage] = useState<string | null>(null);
@@ -313,16 +317,9 @@ export default function Dashboard() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
-  // Show loading state while checking authentication
+  // Show loading skeleton while checking authentication
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400 font-medium">Checking authentication...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Don't render dashboard if not authenticated (will redirect)
@@ -353,7 +350,26 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">AI-Powered Content Creation</p>
               </div>
             </div>
-            <nav className="flex items-center space-x-2">
+
+            {/* Mobile hamburger button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all"
+              aria-label="Toggle mobile menu"
+            >
+              {mobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+
+            {/* Desktop navigation */}
+            <nav className="hidden md:flex items-center space-x-2">
               <button
                 onClick={() => router.push('/')}
                 className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all"
@@ -377,6 +393,37 @@ export default function Dashboard() {
               </div>
             </nav>
           </div>
+
+          {/* Mobile navigation slide-in menu */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 dark:border-white/10 mt-4 pt-4">
+              <nav className="flex flex-col space-y-2">
+                <button
+                  onClick={() => { router.push('/'); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all"
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => { router.push('/settings'); setMobileMenuOpen(false); }}
+                  className="w-full text-left px-4 py-3 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-all flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Settings
+                </button>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-white/10 mt-2">
+                  <div className="flex items-center gap-2">
+                    <TierBadge tier={usage?.tier || 'free'} onClick={() => { setShowWaitlist(true); setMobileMenuOpen(false); }} />
+                    <ThemeToggle />
+                  </div>
+                  <UserButton afterSignOutUrl="/" />
+                </div>
+              </nav>
+            </div>
+          )}
         </div>
       </header>
 

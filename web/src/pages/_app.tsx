@@ -8,9 +8,16 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import SkipToContent from '@/components/SkipToContent'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
+import { Inter } from 'next/font/google'
 
 import { ClerkProvider } from '@clerk/nextjs'
 
+// Configure Inter font with next/font for zero layout shift
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -34,16 +41,20 @@ export default function App({ Component, pageProps }: AppProps) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <ErrorBoundary>
-            {/* Global animated background - Interactive particle theme on all pages EXCEPT onboarding */}
-            {!isOnboarding && (
-              <AnimatedBackground intensity="subtle" variant="interactive" fixed={true} />
-            )}
-            <SkipToContent />
-            <Component {...pageProps} />
-            <Toaster />
+            {/* Apply Inter font to entire app with zero layout shift */}
+            <div className={`${inter.variable} font-sans`}>
+              {/* Global animated background - Interactive particle theme on all pages EXCEPT onboarding */}
+              {!isOnboarding && (
+                <AnimatedBackground intensity="subtle" variant="interactive" fixed={true} />
+              )}
+              <SkipToContent />
+              <Component {...pageProps} />
+              <Toaster />
+            </div>
           </ErrorBoundary>
         </ThemeProvider>
       </QueryClientProvider>
     </ClerkProvider>
   )
 }
+
