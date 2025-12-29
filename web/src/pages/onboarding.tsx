@@ -17,6 +17,7 @@ import { useUser } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import SEOHead from '@/components/SEOHead';
 import ThemeToggle from '@/components/ThemeToggle';
+import PersonaQuiz from '@/components/settings/PersonaQuiz';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -253,13 +254,13 @@ export default function Onboarding() {
 
         {/* Progress - Simple dots */}
         <div className="flex items-center gap-3 mb-12">
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3, 4, 5].map((s) => (
             <div key={s} className="flex items-center">
               <div className={`
                 w-3 h-3 rounded-full transition-all duration-300
                 ${step >= s ? 'bg-blue-600 scale-100' : 'bg-gray-300 dark:bg-white/20 scale-75'}
               `}></div>
-              {s < 4 && (
+              {s < 5 && (
                 <div className={`w-8 h-0.5 mx-1 transition-all duration-300 ${step > s ? 'bg-blue-600' : 'bg-gray-300 dark:bg-white/20'}`} />
               )}
             </div>
@@ -455,8 +456,16 @@ export default function Onboarding() {
             </div>
           )}
 
-          {/* Step 4: All Done */}
+          {/* Step 4: Persona Quiz */}
           {step === 4 && (
+            <PersonaQuiz
+              onComplete={() => setStep(5)}
+              onSkip={() => setStep(5)}
+            />
+          )}
+
+          {/* Step 5: All Done */}
+          {step === 5 && (
             <div className="p-8 md:p-12 text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-tr from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-xl">
                 <span className="text-3xl">🎉</span>

@@ -15,6 +15,7 @@ import { useUser, UserButton, useAuth } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import SEOHead from '@/components/SEOHead';
 import ThemeToggle from '@/components/ThemeToggle';
+import PersonaSettings from '@/components/settings/PersonaSettings';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -443,6 +444,9 @@ export default function Settings() {
                 </div>
               </div>
             </div>
+
+            {/* Writing Persona Settings */}
+            <PersonaSettings />
 
           </div>
         )}
