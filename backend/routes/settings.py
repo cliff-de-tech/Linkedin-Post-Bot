@@ -155,34 +155,43 @@ async def get_connection_status(user_id: str):
         "token_expires_at": None
     }
     
-    # Get user settings
-    if get_user_settings:
-        try:
-            settings = await get_user_settings(user_id)
-            if settings:
-                status["github_username"] = settings.get("github_username", "")
-                status["github_connected"] = bool(settings.get("github_username"))
-        except Exception as e:
-            logger.debug(f"Error getting settings: {e}")
-    
-    # Check LinkedIn token
+    # Check LinkedIn token from accounts table
     if get_token_by_user_id:
         try:
             token = await get_token_by_user_id(user_id)
             if token:
-                status["linkedin_connected"] = True
-                status["linkedin_urn"] = token.get("linkedin_user_urn", "")
+                # LinkedIn is connected if we have an access_token (not just URN)
+                has_access_token = bool(token.get("access_token"))
+                status["linkedin_connected"] = has_access_token
+                status["linkedin_urn"] = token.get("linkedin_user_urn") or ""
                 status["token_expires_at"] = token.get("expires_at")
+                
+                # Get GitHub info from accounts table too
+                if token.get("github_username"):
+                    status["github_username"] = token.get("github_username")
+                    status["github_connected"] = True
+                if token.get("github_access_token"):
+                    status["github_oauth_connected"] = True
         except Exception as e:
-            logger.debug(f"Error getting LinkedIn token: {e}")
+            logger.debug(f"Error getting token: {e}")
     
-    # Check GitHub OAuth
-    if get_github_token:
+    # Also check user_settings for github_username (may be set there instead)
+    if get_user_settings and not status["github_username"]:
+        try:
+            settings = await get_user_settings(user_id)
+            if settings and settings.get("github_username"):
+                status["github_username"] = settings.get("github_username")
+                status["github_connected"] = True
+        except Exception as e:
+            logger.debug(f"Error getting settings: {e}")
+    
+    # Check GitHub OAuth token separately 
+    if get_github_token and not status["github_oauth_connected"]:
         try:
             github_token = await get_github_token(user_id)
             if github_token:
                 status["github_oauth_connected"] = True
-                # Use OAuth username if no username in settings
+                # Use OAuth username if no username yet
                 if not status["github_username"] and github_token.get("github_username"):
                     status["github_username"] = github_token.get("github_username")
                     status["github_connected"] = True
