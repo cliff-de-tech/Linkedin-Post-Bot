@@ -471,13 +471,17 @@ async def get_image_preview(req: ImagePreviewRequest):
     try:
         # Try Unsplash API
         unsplash_key = os.getenv("UNSPLASH_ACCESS_KEY")
+        logger.info(f"Unsplash key present: {bool(unsplash_key)}, query: {req.query}")
         
         if unsplash_key:
             response = requests.get(
                 "https://api.unsplash.com/search/photos",
                 params={"query": req.query, "per_page": 6},
-                headers={"Authorization": f"Client-ID {unsplash_key}"}
+                headers={"Authorization": f"Client-ID {unsplash_key}"},
+                timeout=10
             )
+            
+            logger.info(f"Unsplash response status: {response.status_code}")
             
             if response.ok:
                 data = response.json()
@@ -491,9 +495,14 @@ async def get_image_preview(req: ImagePreviewRequest):
                         "photographer": photo["user"]["name"],
                         "download_url": photo["urls"]["full"]
                     })
+                logger.info(f"Found {len(images)} images for query: {req.query}")
                 return {"images": images}
+            else:
+                logger.error(f"Unsplash API error: {response.status_code} - {response.text}")
+                return {"images": [], "error": f"Unsplash API error: {response.status_code}"}
         
         # Fallback: return empty (no API key)
+        logger.warning("UNSPLASH_ACCESS_KEY not found in environment")
         return {"images": [], "message": "No image API configured. Set UNSPLASH_ACCESS_KEY in .env"}
     except Exception as e:
         logger.error(f"Error fetching images: {e}")
