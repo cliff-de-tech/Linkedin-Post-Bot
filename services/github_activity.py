@@ -1,12 +1,53 @@
 import requests
 import os
 import logging
+import time
 from datetime import datetime, timedelta, timezone
+from typing import Dict, Any, Optional, Tuple
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 GITHUB_API = "https://api.github.com"
+
+# =============================================================================
+# SIMPLE IN-MEMORY CACHE
+# Speeds up dashboard loading by caching GitHub API responses for 5 minutes
+# =============================================================================
+_cache: Dict[str, Tuple[Any, float]] = {}
+CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def _get_cached(key: str) -> Optional[Any]:
+    """Get value from cache if not expired."""
+    if key in _cache:
+        value, expires_at = _cache[key]
+        if time.time() < expires_at:
+            logger.debug(f"Cache HIT for {key}")
+            return value
+        else:
+            del _cache[key]
+            logger.debug(f"Cache EXPIRED for {key}")
+    return None
+
+
+def _set_cached(key: str, value: Any, ttl: int = CACHE_TTL_SECONDS) -> None:
+    """Store value in cache with TTL."""
+    _cache[key] = (value, time.time() + ttl)
+    logger.debug(f"Cache SET for {key}, expires in {ttl}s")
+
+
+def clear_github_cache(username: str = None) -> None:
+    """Clear cache for a user or all cache."""
+    global _cache
+    if username:
+        keys_to_delete = [k for k in _cache if username in k]
+        for k in keys_to_delete:
+            del _cache[k]
+        logger.info(f"Cleared cache for {username} ({len(keys_to_delete)} entries)")
+    else:
+        _cache = {}
+        logger.info("Cleared all GitHub cache")
 
 
 def get_user_activity(username: str, limit: int = 10, token: str = None):
@@ -24,7 +65,15 @@ def get_user_activity(username: str, limit: int = 10, token: str = None):
        - Returns PUBLIC events only
        - Uses GITHUB_TOKEN (App Secret) if available for rate limit boost (5000 req/hr)
        - Otherwise uses unauthenticated IP limit (60 req/hr)
+    
+    CACHING: Results are cached for 5 minutes to speed up dashboard loading.
     """
+    # Check cache first
+    cache_key = f"activity:{username}:{limit}:{bool(token)}"
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+    
     try:
         headers = {
             'Accept': 'application/vnd.github.v3+json'

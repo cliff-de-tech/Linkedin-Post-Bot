@@ -135,6 +135,77 @@ async def save_settings_path(user_id: str, req: SettingsRequest):
         logger.error(f"Error saving settings for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# =============================================================================
+# STATS ENDPOINT
+# =============================================================================
+@router.get("/stats/{user_id}")
+async def get_stats(user_id: str):
+    """
+    Get dashboard stats for a user.
+    
+    Returns post counts, credits, and growth metrics.
+    """
+    try:
+        # Get post counts from database
+        from services.db import get_database
+        db = get_database()
+        
+        # Count posts for this user
+        posts_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1",
+            [user_id]
+        )
+        posts_count = posts_result['count'] if posts_result else 0
+        
+        # Count posts this month
+        import time
+        now = int(time.time())
+        month_ago = now - (30 * 24 * 60 * 60)
+        week_ago = now - (7 * 24 * 60 * 60)
+        
+        monthly_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND created_at > $2",
+            [user_id, month_ago]
+        )
+        posts_this_month = monthly_result['count'] if monthly_result else 0
+        
+        weekly_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND created_at > $2",
+            [user_id, week_ago]
+        )
+        posts_this_week = weekly_result['count'] if weekly_result else 0
+        
+        # Get usage/credits from user settings
+        credits_remaining = 10  # Default for free tier
+        if get_user_settings:
+            settings = await get_user_settings(user_id)
+            if settings and settings.get('subscription_tier') == 'pro':
+                credits_remaining = 50
+        
+        return {
+            "posts_generated": posts_count,
+            "posts_published": posts_count,
+            "posts_this_month": posts_this_month,
+            "posts_this_week": posts_this_week,
+            "posts_last_week": 0,  # TODO: calculate if needed
+            "growth_percentage": 0,  # TODO: calculate week-over-week
+            "credits_remaining": credits_remaining,
+            "draft_posts": 0
+        }
+    except Exception as e:
+        logger.error(f"Error getting stats for {user_id}: {e}")
+        # Return default stats instead of error to prevent UI breaking
+        return {
+            "posts_generated": 0,
+            "posts_published": 0,
+            "posts_this_month": 0,
+            "posts_this_week": 0,
+            "posts_last_week": 0,
+            "growth_percentage": 0,
+            "credits_remaining": 10,
+            "draft_posts": 0
+        }
+
 
 # =============================================================================
 # CONNECTION STATUS ENDPOINT
