@@ -90,7 +90,6 @@ async def save_token(
         )
         if row:
             # Update existing record for this user - use user_id for WHERE clause
-            # because id column may be NULL in some cases
             await db.execute("""
                 UPDATE accounts SET
                     linkedin_user_urn = $1,
@@ -103,6 +102,20 @@ async def save_token(
             """, [linkedin_user_urn, encrypted_access, encrypted_refresh, 
                   expires_at, scopes, user_id])
             return
+    
+    # Before inserting, check if this linkedin_urn exists for another user
+    # If so, clear that old record (user is reconnecting from different Clerk account)
+    if linkedin_user_urn:
+        existing_urn = await db.fetch_one(
+            "SELECT user_id FROM accounts WHERE linkedin_user_urn = $1",
+            [linkedin_user_urn]
+        )
+        if existing_urn and existing_urn.get('user_id') != user_id:
+            logger.info(f"LinkedIn URN switching users, clearing old record")
+            await db.execute(
+                "UPDATE accounts SET linkedin_user_urn = NULL, access_token = NULL WHERE linkedin_user_urn = $1",
+                [linkedin_user_urn]
+            )
     
     # Insert new record or update if linkedin_urn conflicts
     await db.execute("""
