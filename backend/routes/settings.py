@@ -136,6 +136,83 @@ async def save_settings_path(user_id: str, req: SettingsRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 # =============================================================================
+# USAGE ENDPOINT (for usage bar: X/10 posts)
+# =============================================================================
+@router.get("/usage/{user_id}")
+async def get_usage(user_id: str, timezone: str = "UTC"):
+    """
+    Get usage stats for the daily limit bar.
+    
+    Returns posts used today out of daily limit (10 for free, 50 for pro).
+    """
+    import time
+    from datetime import datetime
+    
+    try:
+        from services.db import get_database
+        db = get_database()
+        
+        # Get subscription tier
+        tier = "free"
+        if get_user_settings:
+            settings = await get_user_settings(user_id)
+            if settings:
+                tier = settings.get('subscription_tier', 'free')
+        
+        # Set limits based on tier
+        posts_limit = 10 if tier == "free" else 50
+        scheduled_limit = 3 if tier == "free" else 20
+        
+        # Count posts today (using UTC midnight as reset)
+        now = datetime.utcnow()
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        midnight_ts = int(midnight.timestamp())
+        
+        posts_today_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND created_at > $2",
+            [user_id, midnight_ts]
+        )
+        posts_today = posts_today_result['count'] if posts_today_result else 0
+        
+        # Count scheduled posts
+        scheduled_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM scheduled_posts WHERE user_id = $1 AND status = 'pending'",
+            [user_id]
+        )
+        scheduled_count = scheduled_result['count'] if scheduled_result else 0
+        
+        # Calculate reset time (next midnight UTC)
+        tomorrow_midnight = midnight.replace(day=now.day + 1) if now.day < 28 else midnight
+        resets_in = int((tomorrow_midnight - now).total_seconds())
+        
+        return {
+            "tier": tier,
+            "posts_today": posts_today,
+            "posts_limit": posts_limit,
+            "posts_remaining": max(0, posts_limit - posts_today),
+            "scheduled_count": scheduled_count,
+            "scheduled_limit": scheduled_limit,
+            "scheduled_remaining": max(0, scheduled_limit - scheduled_count),
+            "resets_in_seconds": max(0, resets_in),
+            "resets_at": tomorrow_midnight.isoformat() + "Z"
+        }
+    except Exception as e:
+        logger.error(f"Error getting usage for {user_id}: {e}")
+        # Return defaults to prevent UI breaking
+        return {
+            "tier": "free",
+            "posts_today": 0,
+            "posts_limit": 10,
+            "posts_remaining": 10,
+            "scheduled_count": 0,
+            "scheduled_limit": 3,
+            "scheduled_remaining": 3,
+            "resets_in_seconds": 86400,
+            "resets_at": None
+        }
+
+
+# =============================================================================
 # STATS ENDPOINT
 # =============================================================================
 @router.get("/stats/{user_id}")
