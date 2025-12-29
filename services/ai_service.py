@@ -390,17 +390,63 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
     activity_tone = get_activity_tone_modifier(activity_type)
     system_prompt = system_prompt + activity_tone
     
+    # Random elements to inject variety
+    push_vibes = [
+        "momentum and flow", "grinding and growing", "small wins stacking up",
+        "the builder mindset", "shipping mode activated", "code flowing like water",
+        "progress over perfection", "another brick in the wall", "the compound effect"
+    ]
+    push_angles = [
+        "talk about the journey, not just the destination",
+        "reflect on what you learned today",
+        "share a surprising discovery",
+        "celebrate the small win",
+        "be vulnerable about challenges faced",
+        "inspire others to start building"
+    ]
+    
+    pr_vibes = [
+        "collaboration wins", "the power of feedback", "shipping with confidence",
+        "code review magic", "team effort pays off", "open source spirit"
+    ]
+    pr_angles = [
+        "share what you learned from the process",
+        "thank your collaborators",
+        "discuss the problem you solved",
+        "reflect on the improvement",
+        "share a tip from the experience"
+    ]
+    
+    new_repo_vibes = [
+        "new beginnings", "the spark of creation", "idea to reality",
+        "version 0.0.1 energy", "building in public", "the first commit feeling"
+    ]
+    new_repo_angles = [
+        "share why this project matters to you",
+        "discuss the problem you're solving",
+        "invite others to follow the journey",
+        "be honest about your vision"
+    ]
+    
     if context_data.get('type') == 'push':
         commits = context_data.get('commits', 0)
         repo = context_data.get('repo', 'unknown-repo')
         description = context_data.get('description', '')
         
+        vibe = random.choice(push_vibes)
+        angle = random.choice(push_angles)
+        
         user_content = f"""
-        Write an ENERGETIC LinkedIn post about my coding momentum!
-        Activity: I pushed {commits} commits to '{repo}'.
-        Context: The project involves: {description}
-        Vibe: I'm in the zone, making progress, shipping code.
-        Key Message: Consistency beats perfection. Every commit counts.
+        Create a LinkedIn post about coding progress.
+        
+        FACTS ONLY (use these creatively):
+        - Pushed {commits} commits to '{repo}'
+        - Project context: {description}
+        
+        YOUR CREATIVE DIRECTION: {angle}
+        ENERGY: {vibe}
+        
+        BE UNIQUE. Don't use generic phrases. Make it authentically yours.
         """
         
     elif context_data.get('type') == 'pull_request':
@@ -410,16 +456,21 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
         merged = context_data.get('merged', False)
         
         state_str = "merged" if merged else "opened"
-        achievement = "This is a WIN!" if merged else "Putting my work out there for review."
+        vibe = random.choice(pr_vibes)
+        angle = random.choice(pr_angles)
         
         user_content = f"""
-        Write a PROUD LinkedIn post about a Pull Request I just {state_str}.
-        Repository: {repo}
-        PR Title: {title}
-        PR Description: {body}
-        Achievement: {achievement}
-        Vibe: Collaborative, shipping features, making impact.
-        Key Message: Good things happen when you collaborate and put your code out there.
+        Create a LinkedIn post about a pull request.
+        
+        FACTS ONLY:
+        - PR was {state_str} in '{repo}'
+        - Title: {title}
+        - Description: {body}
+        
+        YOUR CREATIVE DIRECTION: {angle}
+        ENERGY: {vibe}
+        
+        BE UNIQUE. Avoid clichés. Write from the heart.
         """
         
     elif context_data.get('type') == 'new_repo':
@@ -427,24 +478,41 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
         description = context_data.get('description', '')
         language = context_data.get('language', 'Code')
         
+        vibe = random.choice(new_repo_vibes)
+        angle = random.choice(new_repo_angles)
+        
         user_content = f"""
-        Write an EXCITED LinkedIn post about a brand new project I'm launching!
-        Project Name: {repo}
-        Description: {description}
-        Main Tech Stack: {language}
-        Vibe: New beginnings, I'm building something from scratch!
-        Key Message: Every great project starts with a single commit. This is day one.
+        Create a LinkedIn post about launching a new project.
+        
+        FACTS ONLY:
+        - New project: {repo}
+        - What it does: {description}
+        - Tech: {language}
+        
+        YOUR CREATIVE DIRECTION: {angle}
+        ENERGY: {vibe}
+        
+        BE UNIQUE. This is YOUR story. Tell it your way.
         """
         
     else:
         # Generic or manual context
         topic = context_data.get('topic', 'Coding & Development')
-        details = context_data.get('details', 'Just sharing some thoughts on my developer journey.')
+        details = context_data.get('details', 'Sharing thoughts on my developer journey.')
+        
+        generic_angles = [
+            "share a personal insight", "be reflective", "inspire action",
+            "tell a quick story", "ask a thought-provoking question"
+        ]
         
         user_content = f"""
-        Write a LinkedIn post about: {topic}
-        Details: {details}
-        Context: I want to share this update with my professional network.
+        Create a LinkedIn post about: {topic}
+        
+        Context: {details}
+        
+        YOUR CREATIVE DIRECTION: {random.choice(generic_angles)}
+        
+        BE UNIQUE. Make it memorable. Skip the corporate speak.
         """
 
     try:
