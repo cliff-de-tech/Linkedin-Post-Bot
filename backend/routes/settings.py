@@ -30,9 +30,7 @@ except ImportError:
 
 try:
     from services.token_store import get_token_by_user_id, get_github_token
-    logger.info("✅ token_store imports successful")
-except ImportError as e:
-    logger.warning(f"⚠️ token_store import failed: {e}")
+except ImportError:
     get_token_by_user_id = None
     get_github_token = None
 
@@ -657,19 +655,23 @@ class PublishFullRequest(BaseModel):
 async def publish_full(req: PublishFullRequest):
     """Publish a post with optional image to LinkedIn."""
     try:
+        logger.info(f"Publish request: user_id={req.user_id}, test_mode={req.test_mode}")
+        
         if req.test_mode:
             return {"success": True, "test_mode": True, "message": "Test mode - post would be published"}
         
-        # Import token service directly to avoid module-level import issues
+        # Import token function directly to avoid module-level import issues
         try:
             from services.token_store import get_token_by_user_id as get_token
         except ImportError as e:
             logger.error(f"Failed to import token_store: {e}")
-            return {"success": False, "error": "Token service import failed"}
+            return {"success": False, "error": "Token service not available (import error)"}
         
         token_data = await get_token(req.user_id)
+        logger.info(f"Token data retrieved: has_token={bool(token_data)}")
+        
         if not token_data or not token_data.get('access_token'):
-            return {"success": False, "error": "Not connected to LinkedIn. Please connect your account in Settings."}
+            return {"success": False, "error": "Not connected to LinkedIn. Please connect in Settings."}
         
         try:
             from services.linkedin_api import post_to_linkedin
@@ -683,6 +685,7 @@ async def publish_full(req: PublishFullRequest):
         except Exception as e:
             logger.error(f"LinkedIn post error: {e}")
             return {"success": False, "error": str(e)}
+            
     except Exception as e:
         logger.error(f"Error in publish/full: {e}")
         return {"success": False, "error": str(e)}
