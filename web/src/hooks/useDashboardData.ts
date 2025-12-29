@@ -119,21 +119,24 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
         queryKey: ['dashboard', 'stats', userId],
         queryFn: () => fetchStats(userId, getToken),
         enabled: enabled && !!userId,
-        staleTime: 1000 * 60 * 2, // 2 minutes
+        staleTime: 1000 * 10, // 10 seconds - stats should be fresh
+        refetchInterval: 1000 * 30, // Auto-refetch every 30 seconds
     });
 
     const postsQuery = useQuery({
         queryKey: ['dashboard', 'posts', userId],
         queryFn: () => fetchPostHistory(userId, getToken),
         enabled: enabled && !!userId,
-        staleTime: 1000 * 60 * 2, // 2 minutes
+        staleTime: 1000 * 10, // 10 seconds
+        refetchInterval: 1000 * 30, // Auto-refetch every 30 seconds
     });
 
     const usageQuery = useQuery({
         queryKey: ['dashboard', 'usage', userId],
         queryFn: () => fetchUsage(userId, getToken),
         enabled: enabled && !!userId,
-        staleTime: 1000 * 60, // 1 minute (usage changes more frequently)
+        staleTime: 1000 * 10, // 10 seconds (usage is critical)
+        refetchInterval: 1000 * 30, // Auto-refetch every 30 seconds
     });
 
     const templatesQuery = useQuery({
