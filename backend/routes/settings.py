@@ -378,3 +378,123 @@ async def get_connection_status(user_id: str):
     
     logger.info(f"Final status: linkedin={status['linkedin_connected']}, github={status['github_connected']}")
     return status
+
+
+# =============================================================================
+# POSTS ENDPOINTS (for manual mode dashboard)
+# =============================================================================
+class PostCreateRequest(BaseModel):
+    """Request model for creating a post."""
+    user_id: str
+    post_content: str
+    post_type: Optional[str] = "push"
+    context: Optional[Dict[str, Any]] = None
+    status: Optional[str] = "draft"
+
+
+@router.post("/posts")
+async def create_post(req: PostCreateRequest):
+    """
+    Create/save a new post record.
+    """
+    import time
+    
+    try:
+        from services.db import get_database
+        db = get_database()
+        
+        now = int(time.time())
+        
+        await db.execute("""
+            INSERT INTO posts (user_id, post_content, post_type, status, created_at)
+            VALUES ($1, $2, $3, $4, $5)
+        """, [req.user_id, req.post_content, req.post_type, req.status, now])
+        
+        return {"success": True, "message": "Post saved"}
+    except Exception as e:
+        logger.error(f"Error saving post: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@router.get("/scheduled-posts/{user_id}")
+async def get_scheduled_posts(user_id: str):
+    """
+    Get scheduled posts for a user.
+    """
+    try:
+        from services.db import get_database
+        db = get_database()
+        
+        rows = await db.fetch_all(
+            """SELECT id, post_content, image_url, scheduled_time, status, 
+                      error_message, created_at, published_at 
+               FROM scheduled_posts 
+               WHERE user_id = $1 
+               ORDER BY scheduled_time DESC 
+               LIMIT 50""",
+            [user_id]
+        )
+        
+        posts = []
+        for row in rows:
+            posts.append({
+                "id": row['id'],
+                "post_content": row['post_content'],
+                "image_url": row.get('image_url'),
+                "scheduled_time": row['scheduled_time'],
+                "status": row['status'],
+                "error_message": row.get('error_message'),
+                "created_at": row['created_at'],
+                "published_at": row.get('published_at')
+            })
+        
+        return {"posts": posts}
+    except Exception as e:
+        logger.error(f"Error getting scheduled posts: {e}")
+        return {"posts": []}
+
+
+class ImagePreviewRequest(BaseModel):
+    """Request model for image preview."""
+    query: str
+    user_id: Optional[str] = None
+
+
+@router.post("/image/preview")
+async def get_image_preview(req: ImagePreviewRequest):
+    """
+    Get image suggestions for a post (uses Unsplash or similar).
+    """
+    import os
+    import requests
+    
+    try:
+        # Try Unsplash API
+        unsplash_key = os.getenv("UNSPLASH_ACCESS_KEY")
+        
+        if unsplash_key:
+            response = requests.get(
+                "https://api.unsplash.com/search/photos",
+                params={"query": req.query, "per_page": 6},
+                headers={"Authorization": f"Client-ID {unsplash_key}"}
+            )
+            
+            if response.ok:
+                data = response.json()
+                images = []
+                for photo in data.get("results", []):
+                    images.append({
+                        "id": photo["id"],
+                        "url": photo["urls"]["regular"],
+                        "thumb": photo["urls"]["thumb"],
+                        "description": photo.get("description") or photo.get("alt_description", ""),
+                        "photographer": photo["user"]["name"],
+                        "download_url": photo["urls"]["full"]
+                    })
+                return {"images": images}
+        
+        # Fallback: return empty (no API key)
+        return {"images": [], "message": "No image API configured. Set UNSPLASH_ACCESS_KEY in .env"}
+    except Exception as e:
+        logger.error(f"Error fetching images: {e}")
+        return {"images": [], "error": str(e)}
