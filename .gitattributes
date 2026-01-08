@@ -1,0 +1,21 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Ensure generated contract files always use LF line endings
+# This prevents CI failures due to CRLF/LF differences between Windows and Linux
+shared/contracts/*.d.ts text eol=lf
+shared/contracts/*.json text eol=lf
+
+# Other common file types
+*.js text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+
+# Windows batch files keep their line endings
+*.bat text eol=crlf
+*.cmd text eol=crlf
