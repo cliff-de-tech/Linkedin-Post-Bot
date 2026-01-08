@@ -9,7 +9,7 @@ API endpoints for:
 """
 from typing import Optional
 
-from fastapi import APIRouter, Request, HTTPException, Header
+from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -89,8 +89,11 @@ class SubscriptionStatusResponse(BaseModel):
 # =============================================================================
 
 @router.post("/checkout", response_model=CheckoutResponse)
-@require_auth
-async def create_checkout(request: Request, body: CheckoutRequest):
+async def create_checkout(
+    request: Request,
+    body: CheckoutRequest,
+    current_user: dict = Depends(require_auth),
+):
     """
     Create a Stripe Checkout session to start a subscription.
     
@@ -114,7 +117,7 @@ async def create_checkout(request: Request, body: CheckoutRequest):
     log.info("checkout_request_received")
     
     # Verify user_id matches authenticated user
-    auth_user_id = getattr(request.state, "user_id", None)
+    auth_user_id = current_user.get("user_id")
     if auth_user_id and auth_user_id != body.user_id:
         log.warning("checkout_user_mismatch", auth_user_id=auth_user_id)
         raise HTTPException(status_code=403, detail="User ID mismatch")
@@ -149,8 +152,11 @@ async def create_checkout(request: Request, body: CheckoutRequest):
 # =============================================================================
 
 @router.post("/billing-portal", response_model=BillingPortalResponse)
-@require_auth
-async def create_portal(request: Request, body: BillingPortalRequest):
+async def create_portal(
+    request: Request,
+    body: BillingPortalRequest,
+    current_user: dict = Depends(require_auth),
+):
     """
     Create a Stripe Billing Portal session for subscription self-service.
     
@@ -172,7 +178,7 @@ async def create_portal(request: Request, body: BillingPortalRequest):
     log.info("billing_portal_request_received")
     
     # Verify user_id matches authenticated user
-    auth_user_id = getattr(request.state, "user_id", None)
+    auth_user_id = current_user.get("user_id")
     if auth_user_id and auth_user_id != body.user_id:
         log.warning("portal_user_mismatch", auth_user_id=auth_user_id)
         raise HTTPException(status_code=403, detail="User ID mismatch")
@@ -207,8 +213,11 @@ async def create_portal(request: Request, body: BillingPortalRequest):
 # =============================================================================
 
 @router.post("/subscription", response_model=SubscriptionStatusResponse)
-@require_auth
-async def get_subscription(request: Request, body: SubscriptionStatusRequest):
+async def get_subscription(
+    request: Request,
+    body: SubscriptionStatusRequest,
+    current_user: dict = Depends(require_auth),
+):
     """
     Get current subscription status for a user.
     
@@ -227,7 +236,7 @@ async def get_subscription(request: Request, body: SubscriptionStatusRequest):
     log = logger.bind(user_id=body.user_id)
     
     # Verify user_id matches authenticated user
-    auth_user_id = getattr(request.state, "user_id", None)
+    auth_user_id = current_user.get("user_id")
     if auth_user_id and auth_user_id != body.user_id:
         log.warning("subscription_user_mismatch", auth_user_id=auth_user_id)
         raise HTTPException(status_code=403, detail="User ID mismatch")
