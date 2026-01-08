@@ -40,12 +40,25 @@ try:
         exchange_code_for_token,
         get_authorize_url_for_user,
         exchange_code_for_token_with_user,
+        AuthServiceError,
+        AuthConfigurationError,
+        AuthProviderError,
+        TokenNotFoundError,
+        TokenRefreshError,
     )
 except ImportError:
     get_authorize_url = None
     exchange_code_for_token = None
     get_authorize_url_for_user = None
     exchange_code_for_token_with_user = None
+    AuthServiceError = Exception
+    AuthConfigurationError = Exception
+    AuthProviderError = Exception
+    TokenNotFoundError = Exception
+    TokenRefreshError = Exception
+
+import structlog
+logger = structlog.get_logger(__name__)
 
 
 # =============================================================================
@@ -165,7 +178,7 @@ async def linkedin_callback(code: str = None, state: str = None, redirect_uri: s
                     user_id
                 )
                 if save_user_settings:
-                    settings['linkedin_user_urn'] = result.get('linkedin_user_urn')
+                    settings['linkedin_user_urn'] = result.linkedin_user_urn
                     await save_user_settings(user_id, settings)
         
         # Fallback to global credentials
@@ -175,13 +188,24 @@ async def linkedin_callback(code: str = None, state: str = None, redirect_uri: s
             
             result = await exchange_code_for_token(code, backend_callback_uri, user_id)
         
-        linkedin_urn = result.get("linkedin_user_urn", "")
+        linkedin_urn = result.linkedin_user_urn if hasattr(result, 'linkedin_user_urn') else result.get("linkedin_user_urn", "")
         return RedirectResponse(f"{frontend_redirect}?linkedin_success=true&linkedin_urn={linkedin_urn}")
+    
+    except AuthConfigurationError as e:
+        logger.error("oauth_config_error", user_id=user_id, error=str(e))
+        return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error=oauth_not_configured")
+    
+    except AuthProviderError as e:
+        logger.error("oauth_provider_error", user_id=user_id, error=str(e), status_code=e.status_code)
+        return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error=linkedin_unavailable")
+    
+    except AuthServiceError as e:
+        logger.error("oauth_service_error", user_id=user_id, error=str(e))
+        error_msg = str(e).replace(" ", "_")[:50]
+        return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error={error_msg}")
         
     except Exception as e:
-        import traceback
-        print(f"OAuth Error: {e}")
-        print(traceback.format_exc())
+        logger.exception("oauth_unexpected_error", user_id=user_id)
         error_msg = str(e).replace(" ", "_")[:50]
         return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error={error_msg}")
 
@@ -234,9 +258,14 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
     if not user_id:
         return {"error": "missing user_id in state", "status": "failed"}
     
+    import requests
+    from requests.exceptions import RequestException, Timeout, ConnectionError
+    
+    # SSL verification setting (default to True for security)
+    ssl_verify = os.getenv('SSL_VERIFY', 'true').lower() != 'false'
+    request_timeout = int(os.getenv('AUTH_REQUEST_TIMEOUT', '15'))
+    
     try:
-        import requests
-        
         # Exchange code for access token
         token_response = requests.post(
             'https://github.com/login/oauth/access_token',
@@ -246,18 +275,21 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
                 'code': code,
             },
             headers={'Accept': 'application/json'},
-            timeout=10,
-            verify=False
+            timeout=request_timeout,
+            verify=ssl_verify,
         )
+        token_response.raise_for_status()
         
         token_data = token_response.json()
         
         if 'error' in token_data:
+            logger.error("github_oauth_error", user_id=user_id, error=token_data.get('error'))
             return {"error": token_data.get('error_description', 'OAuth failed'), "status": "failed"}
         
         access_token = token_data.get('access_token')
         
         if not access_token:
+            logger.error("github_no_token", user_id=user_id)
             return {"error": "No access token received", "status": "failed"}
         
         # Get GitHub username from API
@@ -267,9 +299,10 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
                 'Authorization': f'Bearer {access_token}',
                 'Accept': 'application/vnd.github.v3+json'
             },
-            timeout=10,
-            verify=False
+            timeout=request_timeout,
+            verify=ssl_verify,
         )
+        user_response.raise_for_status()
         
         github_user = user_response.json()
         github_username = github_user.get('login', '')
@@ -284,15 +317,27 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
             settings['github_username'] = github_username
             await save_user_settings(user_id, settings)
         
+        logger.info("github_oauth_success", user_id=user_id, github_username=github_username)
         return {
             "status": "success", 
             "github_username": github_username,
             "github_connected": True
         }
+    
+    except Timeout:
+        logger.error("github_oauth_timeout", user_id=user_id)
+        return {"error": "GitHub API request timed out", "status": "failed"}
+    
+    except ConnectionError:
+        logger.error("github_oauth_connection_error", user_id=user_id)
+        return {"error": "Unable to connect to GitHub", "status": "failed"}
+    
+    except RequestException as e:
+        logger.error("github_oauth_request_error", user_id=user_id, error=str(e))
+        return {"error": f"GitHub API error: {str(e)}", "status": "failed"}
+    
     except Exception as e:
-        import traceback
-        print(f"GitHub OAuth Error: {e}")
-        print(traceback.format_exc())
+        logger.exception("github_oauth_unexpected_error", user_id=user_id)
         return {"error": str(e), "status": "failed"}
 
 

@@ -4,6 +4,25 @@
 version: '3.8'
 
 services:
+  # ==========================================================================
+  # REDIS - Message Broker for Celery
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # BACKEND API - FastAPI Application
+  # ==========================================================================
   backend:
     build:
       context: .
@@ -19,11 +38,15 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - UNSPLASH_ACCESS_KEY=${UNSPLASH_ACCESS_KEY}
       - CLERK_ISSUER=${CLERK_ISSUER}
-      - TOKEN_DB_PATH=/data/tokens.db
-      - USER_SETTINGS_DB_PATH=/data/user_settings.db
-      - POST_HISTORY_DB_PATH=/data/post_history.db
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SSL_VERIFY=${SSL_VERIFY:-true}
     volumes:
       - backend-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -31,6 +54,57 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # ==========================================================================
+  # CELERY WORKER - Background Task Processor
+  # ==========================================================================
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: celery -A services.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - LINKEDIN_CLIENT_ID=${LINKEDIN_CLIENT_ID}
+      - LINKEDIN_CLIENT_SECRET=${LINKEDIN_CLIENT_SECRET}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - SSL_VERIFY=${SSL_VERIFY:-true}
+    volumes:
+      - backend-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ==========================================================================
+  # CELERY BEAT - Periodic Task Scheduler
+  # ==========================================================================
+  beat:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: celery -A services.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    volumes:
+      - backend-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+
+  # ==========================================================================
+  # FRONTEND - Next.js Application
+  # ==========================================================================
   frontend:
     build:
       context: ./web
@@ -48,3 +122,4 @@ services:
 
 volumes:
   backend-data:
+  redis-data:

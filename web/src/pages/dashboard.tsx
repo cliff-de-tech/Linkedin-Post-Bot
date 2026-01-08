@@ -214,17 +214,23 @@ export default function Dashboard() {
     }
   };
 
-  const handleGeneratePreview = async () => {
+  const handleGeneratePreview = async (model: 'groq' | 'openai' | 'anthropic' = 'groq') => {
     setLoading(true);
     setStatus('');
     const toastId = showToast.loading('Generating preview...');
     try {
       // Get session token for authenticated API call
       const token = await getToken();
-      const result = await generatePreview({ context, user_id: userId }, token || undefined);
+      const result = await generatePreview({ context, user_id: userId, model }, token || undefined);
       setPreview(result.post || 'No post generated');
       showToast.dismiss(toastId);
-      showToast.success('Preview generated successfully!');
+      
+      // Show provider info if available
+      if (result.was_downgraded) {
+        showToast.success('Preview generated! (Using free model - upgrade to Pro for premium AI)');
+      } else {
+        showToast.success(`Preview generated with ${result.provider || model}!`);
+      }
 
       // Save as draft
       await savePost(result.post, 'draft');

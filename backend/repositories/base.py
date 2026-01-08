@@ -4,13 +4,21 @@ Base Repository Pattern
 Provides multi-tenant data isolation by automatically enforcing
 user_id filtering on all queries.
 
+SECURITY: Uses parameterized queries to prevent SQL injection.
+All user inputs are passed as bind parameters, never interpolated
+into SQL strings.
+
 Usage:
     repo = PostRepository(db, user_id="user_123")
     posts = await repo.get_all()  # Automatically filters by user_id
 """
-from typing import Any, Optional, List, Dict
-from sqlalchemy import Table, select, insert, update, delete, and_
+from typing import Any, Optional, List, Dict, Union
+from sqlalchemy import Table, select, insert, update, delete, and_, text
 from sqlalchemy.sql import Select
+from sqlalchemy.dialects import postgresql
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 class BaseRepository:
@@ -19,6 +27,11 @@ class BaseRepository:
     
     All data access for a specific user should go through a repository
     to ensure strict isolation between users.
+    
+    SECURITY FEATURES:
+    - Parameterized queries (no SQL injection via literal_binds)
+    - Automatic user_id enforcement (multi-tenant isolation)
+    - Input sanitization through SQLAlchemy's query builder
     
     Attributes:
         db: Database wrapper instance
@@ -38,10 +51,71 @@ class BaseRepository:
         self.db = db
         self.user_id = user_id
         self.table = table
+        self._log = logger.bind(
+            repository=self.__class__.__name__,
+            user_id=user_id[:8] + "..." if user_id and len(user_id) > 8 else user_id
+        )
     
     def _user_filter(self):
         """Get the base user_id filter condition."""
         return self.table.c.user_id == self.user_id
+    
+    async def _execute_query(
+        self, 
+        stmt, 
+        fetch_mode: str = "all",
+        operation: str = "query"
+    ) -> Union[List[Dict], Optional[Dict], int, bool]:
+        """
+        Execute a parameterized query safely.
+        
+        SECURITY: This method compiles SQLAlchemy statements with proper
+        parameter binding, preventing SQL injection attacks.
+        
+        Args:
+            stmt: SQLAlchemy statement object
+            fetch_mode: "all", "one", "execute", or "scalar"
+            operation: Description for logging
+            
+        Returns:
+            Query results based on fetch_mode
+        """
+        try:
+            # Compile the statement to get SQL and parameters separately
+            # This is the SECURE way - parameters are passed separately
+            compiled = stmt.compile(dialect=postgresql.dialect())
+            query_text = str(compiled)
+            params = compiled.params
+            
+            self._log.debug(
+                "executing_query",
+                operation=operation,
+                fetch_mode=fetch_mode,
+                # Don't log sensitive parameter values in production
+                param_count=len(params) if params else 0
+            )
+            
+            if fetch_mode == "all":
+                result = await self.db.fetch_all(query=query_text, values=params)
+                return [dict(row) for row in result] if result else []
+            elif fetch_mode == "one":
+                result = await self.db.fetch_one(query=query_text, values=params)
+                return dict(result) if result else None
+            elif fetch_mode == "scalar":
+                result = await self.db.fetch_one(query=query_text, values=params)
+                return result[0] if result else 0
+            else:  # execute
+                result = await self.db.execute(query=query_text, values=params)
+                return result
+                
+        except Exception as e:
+            self._log.error(
+                "query_execution_failed",
+                operation=operation,
+                error=str(e),
+                error_type=type(e).__name__
+            )
+            raise
     
     async def get_all(self, order_by=None, limit: int = None, **filters) -> List[Dict]:
         """
@@ -57,7 +131,7 @@ class BaseRepository:
         """
         stmt = select(self.table).where(self._user_filter())
         
-        # Apply additional filters
+        # Apply additional filters (SQLAlchemy handles parameterization)
         for column, value in filters.items():
             if hasattr(self.table.c, column):
                 stmt = stmt.where(getattr(self.table.c, column) == value)
@@ -69,12 +143,11 @@ class BaseRepository:
             else:
                 stmt = stmt.order_by(order_by)
         
-        # Apply limit
+        # Apply limit (as integer, safe from injection)
         if limit is not None:
-            stmt = stmt.limit(limit)
+            stmt = stmt.limit(int(limit))
         
-        result = await self.db.fetch_all(str(stmt.compile(compile_kwargs={"literal_binds": True})))
-        return [dict(row) for row in result] if result else []
+        return await self._execute_query(stmt, fetch_mode="all", operation="get_all")
     
     async def get_by_id(self, record_id: int) -> Optional[Dict]:
         """
@@ -86,14 +159,16 @@ class BaseRepository:
         Returns:
             Record dictionary or None if not found/not owned by user
         """
+        # Ensure record_id is an integer (type safety)
+        record_id = int(record_id)
+        
         stmt = select(self.table).where(
             and_(
                 self.table.c.id == record_id,
                 self._user_filter()
             )
         )
-        result = await self.db.fetch_one(str(stmt.compile(compile_kwargs={"literal_binds": True})))
-        return dict(result) if result else None
+        return await self._execute_query(stmt, fetch_mode="one", operation="get_by_id")
     
     async def create(self, **data) -> int:
         """
@@ -105,11 +180,17 @@ class BaseRepository:
         Returns:
             ID of the created record
         """
-        # Enforce user_id
+        # Enforce user_id (prevents privilege escalation)
         data['user_id'] = self.user_id
         
-        stmt = insert(self.table).values(**data)
-        result = await self.db.execute(str(stmt.compile(compile_kwargs={"literal_binds": True})))
+        # Remove any None values to let DB defaults work
+        clean_data = {k: v for k, v in data.items() if v is not None}
+        
+        stmt = insert(self.table).values(**clean_data).returning(self.table.c.id)
+        
+        result = await self._execute_query(stmt, fetch_mode="scalar", operation="create")
+        
+        self._log.info("record_created", record_id=result)
         return result
     
     async def update(self, record_id: int, **data) -> bool:
@@ -123,15 +204,29 @@ class BaseRepository:
         Returns:
             True if updated, False if not found/not owned
         """
+        # Type safety
+        record_id = int(record_id)
+        
+        # Remove None values to prevent accidental nullification
+        clean_data = {k: v for k, v in data.items() if v is not None}
+        
+        if not clean_data:
+            self._log.warning("update_skipped_no_data", record_id=record_id)
+            return False
+        
         stmt = update(self.table).where(
             and_(
                 self.table.c.id == record_id,
                 self._user_filter()
             )
-        ).values(**data)
+        ).values(**clean_data)
         
-        result = await self.db.execute(str(stmt.compile(compile_kwargs={"literal_binds": True})))
-        return result is not None
+        result = await self._execute_query(stmt, fetch_mode="execute", operation="update")
+        
+        success = result is not None
+        if success:
+            self._log.info("record_updated", record_id=record_id)
+        return success
     
     async def delete(self, record_id: int) -> bool:
         """
@@ -143,6 +238,9 @@ class BaseRepository:
         Returns:
             True if deleted, False if not found/not owned
         """
+        # Type safety
+        record_id = int(record_id)
+        
         stmt = delete(self.table).where(
             and_(
                 self.table.c.id == record_id,
@@ -150,8 +248,12 @@ class BaseRepository:
             )
         )
         
-        result = await self.db.execute(str(stmt.compile(compile_kwargs={"literal_binds": True})))
-        return result is not None
+        result = await self._execute_query(stmt, fetch_mode="execute", operation="delete")
+        
+        success = result is not None
+        if success:
+            self._log.info("record_deleted", record_id=record_id)
+        return success
     
     async def count(self, **filters) -> int:
         """
@@ -170,5 +272,29 @@ class BaseRepository:
             if hasattr(self.table.c, column):
                 stmt = stmt.where(getattr(self.table.c, column) == value)
         
-        result = await self.db.fetch_one(str(stmt.compile(compile_kwargs={"literal_binds": True})))
-        return result[0] if result else 0
+        return await self._execute_query(stmt, fetch_mode="scalar", operation="count")
+    
+    async def exists(self, record_id: int) -> bool:
+        """
+        Check if a record exists for the current user.
+        
+        Args:
+            record_id: Primary key ID
+            
+        Returns:
+            True if record exists and belongs to user
+        """
+        record_id = int(record_id)
+        
+        from sqlalchemy import func, exists as sql_exists
+        
+        subquery = select(self.table.c.id).where(
+            and_(
+                self.table.c.id == record_id,
+                self._user_filter()
+            )
+        ).exists()
+        
+        stmt = select(subquery)
+        result = await self._execute_query(stmt, fetch_mode="scalar", operation="exists")
+        return bool(result)

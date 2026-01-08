@@ -10,19 +10,27 @@ import os
 from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
+import requests
+from requests.exceptions import RequestException, Timeout, ConnectionError
+import structlog
 
-from core.config import logger
 from schemas import ScanRequest, DisconnectRequest
 from middleware.clerk_auth import require_auth
 from services.github_activity import get_user_activity, get_repo_details
 from services.user_settings import get_user_settings, save_user_settings
 from services.token_store import get_token_by_user_id, save_github_token
 
+logger = structlog.get_logger(__name__)
+
 router = APIRouter(prefix="/api", tags=["github"])
 
 # GitHub OAuth configuration
 GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID', '')
 GITHUB_CLIENT_SECRET = os.getenv('GITHUB_CLIENT_SECRET', '')
+
+# Security settings
+SSL_VERIFY = os.getenv('SSL_VERIFY', 'true').lower() != 'false'
+REQUEST_TIMEOUT = int(os.getenv('AUTH_REQUEST_TIMEOUT', '15'))
 
 
 # =============================================================================
@@ -45,6 +53,7 @@ async def github_oauth_start(redirect_uri: str, user_id: str):
         user_id: Clerk user ID (stored in state for callback)
     """
     if not GITHUB_CLIENT_ID:
+        logger.error("github_oauth_not_configured", user_id=user_id)
         return {"error": "GitHub OAuth not configured"}
     
     state = f"{user_id}:{uuid4().hex}"
@@ -60,6 +69,7 @@ async def github_oauth_start(redirect_uri: str, user_id: str):
         f"&state={state}"
     )
     
+    logger.info("github_oauth_started", user_id=user_id)
     return RedirectResponse(auth_url)
 
 
@@ -82,13 +92,14 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
         user_id = parts[0]
     
     if not user_id:
+        logger.warning("github_oauth_missing_user_id")
         return {"error": "missing user_id in state", "status": "failed"}
     
+    log = logger.bind(user_id=user_id)
+    
     try:
-        import requests
-        
         # Exchange code for access token
-        # verify=False added to resolve potential local SSL/Network errors
+        log.debug("github_token_exchange_started")
         token_response = requests.post(
             'https://github.com/login/oauth/access_token',
             data={
@@ -97,18 +108,21 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
                 'code': code,
             },
             headers={'Accept': 'application/json'},
-            timeout=10,
-            verify=False
+            timeout=REQUEST_TIMEOUT,
+            verify=SSL_VERIFY,
         )
+        token_response.raise_for_status()
         
         token_data = token_response.json()
         
         if 'error' in token_data:
+            log.error("github_oauth_error_response", error=token_data.get('error'))
             return {"error": token_data.get('error_description', 'OAuth failed'), "status": "failed"}
         
         access_token = token_data.get('access_token')
         
         if not access_token:
+            log.error("github_no_access_token")
             return {"error": "No access token received", "status": "failed"}
         
         # Get GitHub username from API
@@ -118,9 +132,10 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
                 'Authorization': f'Bearer {access_token}',
                 'Accept': 'application/vnd.github.v3+json'
             },
-            timeout=10,
-            verify=False
+            timeout=REQUEST_TIMEOUT,
+            verify=SSL_VERIFY,
         )
+        user_response.raise_for_status()
         
         github_user = user_response.json()
         github_username = github_user.get('login', '')
@@ -133,13 +148,27 @@ async def github_oauth_callback(code: str = None, state: str = None, redirect_ur
         settings['github_username'] = github_username
         await save_user_settings(user_id, settings)
         
+        log.info("github_oauth_success", github_username=github_username)
         return {
             "status": "success", 
             "github_username": github_username,
             "github_connected": True
         }
+    
+    except Timeout:
+        log.error("github_oauth_timeout")
+        return {"error": "GitHub API request timed out", "status": "failed"}
+    
+    except ConnectionError:
+        log.error("github_oauth_connection_error")
+        return {"error": "Unable to connect to GitHub", "status": "failed"}
+    
+    except RequestException as e:
+        log.error("github_oauth_request_error", error=str(e))
+        return {"error": f"GitHub API error: {str(e)}", "status": "failed"}
+    
     except Exception as e:
-        logger.error("GitHub OAuth Error", exc_info=True)
+        log.exception("github_oauth_unexpected_error")
         return {"error": str(e), "status": "failed"}
 
 

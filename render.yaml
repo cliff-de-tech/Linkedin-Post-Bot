@@ -1,43 +1,227 @@
-# Render Blueprint for automated deployment
+# =============================================================================
+# Render Blueprint - PostBot SaaS Production Deployment
+# =============================================================================
+# 
+# Architecture:
+#   - PostgreSQL Database (managed)
+#   - Redis Cache & Message Broker (managed)
+#   - Backend API (FastAPI + Gunicorn)
+#   - Celery Worker (background tasks)
+#   - Celery Beat (scheduled task scheduler)
+#   - Frontend (Next.js Standalone)
+#
 # Deploy with: https://render.com/deploy
+# 
+# IMPORTANT: After deployment, manually set secrets in Render Dashboard:
+#   - All API keys (Stripe, OpenAI, Anthropic, Groq, LinkedIn, Clerk)
+#   - Database URLs are auto-populated by Render
+# =============================================================================
 
-services:
-  # Backend API Service
-  - type: web
-    name: linkedin-post-bot-api
-    runtime: python
+# =============================================================================
+# DATABASES
+# =============================================================================
+databases:
+  - name: postbot-db
+    databaseName: postbot
+    user: postbot
+    plan: free  # Upgrade to starter/standard for production
     region: oregon
-    plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.app:app --host 0.0.0.0 --port $PORT
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+  # ---------------------------------------------------------------------------
+  # Redis - Message Broker & Cache
+  # ---------------------------------------------------------------------------
+  - type: redis
+    name: postbot-redis
+    plan: free  # Upgrade to starter for production
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Allow all IPs (internal only)
+
+  # ---------------------------------------------------------------------------
+  # Backend API Service (FastAPI)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: postbot-api
+    runtime: docker
+    region: oregon
+    plan: free  # Upgrade to starter for production
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
     healthCheckPath: /health
     envVars:
+      # Python Configuration
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "3.11"
+      
+      # Database (auto-populated by Render)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postbot-db
+          property: connectionString
+      
+      # Redis (auto-populated by Render)
+      - key: REDIS_URL
+        fromService:
+          name: postbot-redis
+          type: redis
+          property: connectionString
+      
+      # LinkedIn OAuth
       - key: LINKEDIN_CLIENT_ID
         sync: false
       - key: LINKEDIN_CLIENT_SECRET
         sync: false
-      - key: GROQ_API_KEY
-        sync: false
+      
+      # GitHub Integration
       - key: GITHUB_USERNAME
         sync: false
+      
+      # Clerk Authentication
       - key: CLERK_ISSUER
         sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      
+      # AI Providers
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      
+      # Stripe Payments
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ID_PRO
+        sync: false
+      
+      # Email (Optional)
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      
+      # Security
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
 
-  # Frontend (Static Site)
-  - type: web
-    name: linkedin-post-bot-web
-    runtime: static
-    rootDir: web
-    buildCommand: npm install && npm run build
-    staticPublishPath: out
-    pullRequestPreviewsEnabled: true
+  # ---------------------------------------------------------------------------
+  # Celery Worker (Background Tasks)
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: postbot-worker
+    runtime: docker
+    region: oregon
+    plan: free  # Upgrade to starter for production
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    # Override the CMD to run Celery worker
+    dockerCommand: celery -A services.celery_app worker --loglevel=info --concurrency=2
     envVars:
-      - key: NODE_VERSION
-        value: 20
+      # Database
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postbot-db
+          property: connectionString
+      
+      # Redis
+      - key: REDIS_URL
+        fromService:
+          name: postbot-redis
+          type: redis
+          property: connectionString
+      
+      # LinkedIn OAuth (for posting)
+      - key: LINKEDIN_CLIENT_ID
+        sync: false
+      - key: LINKEDIN_CLIENT_SECRET
+        sync: false
+      
+      # GitHub Integration
+      - key: GITHUB_USERNAME
+        sync: false
+      
+      # AI Providers (for post generation)
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      
+      # Security
+      - key: SECRET_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat (Task Scheduler)
+  # ---------------------------------------------------------------------------
+  - type: worker
+    name: postbot-beat
+    runtime: docker
+    region: oregon
+    plan: free  # Upgrade to starter for production
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    # Override the CMD to run Celery beat scheduler
+    dockerCommand: celery -A services.celery_app beat --loglevel=info
+    envVars:
+      # Database (for reading scheduled tasks)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postbot-db
+          property: connectionString
+      
+      # Redis (for task queue)
+      - key: REDIS_URL
+        fromService:
+          name: postbot-redis
+          type: redis
+          property: connectionString
+
+  # ---------------------------------------------------------------------------
+  # Frontend (Next.js Standalone)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: postbot-web
+    runtime: docker
+    region: oregon
+    plan: free  # Upgrade to starter for production
+    dockerfilePath: ./web/Dockerfile
+    dockerContext: ./web
+    healthCheckPath: /
+    envVars:
+      # Node Configuration
+      - key: NODE_ENV
+        value: production
+      
+      # API URL (set after backend deploys)
       - key: NEXT_PUBLIC_API_URL
         sync: false
+      
+      # Clerk Authentication (public key)
       - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        sync: false
+      
+      # OAuth Redirect URI
+      - key: NEXT_PUBLIC_REDIRECT_URI
+        sync: false
+      
+      # Stripe (for client-side checkout)
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         sync: false

@@ -11,7 +11,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 
-from core.config import logger
+import structlog
 from schemas import DisconnectRequest
 from middleware.clerk_auth import require_auth
 from services.user_settings import get_user_settings, save_user_settings
@@ -19,9 +19,16 @@ from services.auth_service import (
     get_authorize_url,
     exchange_code_for_token,
     get_authorize_url_for_user,
-    exchange_code_for_token_with_user
+    exchange_code_for_token_with_user,
+    AuthServiceError,
+    AuthConfigurationError,
+    AuthProviderError,
+    TokenNotFoundError,
+    TokenRefreshError,
 )
 from services.token_store import delete_token_by_user_id
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api", tags=["linkedin"])
 
@@ -134,8 +141,8 @@ async def linkedin_callback(code: str = None, state: str = None, redirect_uri: s
                     backend_callback_uri,
                     user_id
                 )
-                # Also save the URN to user settings
-                settings['linkedin_user_urn'] = result.get('linkedin_user_urn')
+                # Also save the URN to user settings (result is now TokenResponse dataclass)
+                settings['linkedin_user_urn'] = result.linkedin_user_urn
                 await save_user_settings(user_id, settings)
         
         # Fallback to global credentials
@@ -146,11 +153,26 @@ async def linkedin_callback(code: str = None, state: str = None, redirect_uri: s
             # Pass user_id for multi-tenant token storage
             result = await exchange_code_for_token(code, backend_callback_uri, user_id)
         
-        linkedin_urn = result.get("linkedin_user_urn", "")
+        # Handle both TokenResponse object and dict (for backwards compatibility)
+        linkedin_urn = result.linkedin_user_urn if hasattr(result, 'linkedin_user_urn') else result.get("linkedin_user_urn", "")
+        logger.info("oauth_callback_success", user_id=user_id, linkedin_urn=linkedin_urn)
         return RedirectResponse(f"{frontend_redirect}?linkedin_success=true&linkedin_urn={linkedin_urn}")
+    
+    except AuthConfigurationError as e:
+        logger.error("oauth_config_error", user_id=user_id, error=str(e))
+        return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error=oauth_not_configured")
+    
+    except AuthProviderError as e:
+        logger.error("oauth_provider_error", user_id=user_id, error=str(e), status_code=e.status_code)
+        return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error=linkedin_unavailable")
+    
+    except AuthServiceError as e:
+        logger.error("oauth_service_error", user_id=user_id, error=str(e))
+        error_msg = str(e).replace(" ", "_")[:50]  # Sanitize for URL
+        return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error={error_msg}")
         
     except Exception as e:
-        logger.error("OAuth Error", exc_info=True)
+        logger.exception("oauth_unexpected_error", user_id=user_id)
         error_msg = str(e).replace(" ", "_")[:50]  # Sanitize for URL
         return RedirectResponse(f"{frontend_redirect}?linkedin_success=false&error={error_msg}")
 

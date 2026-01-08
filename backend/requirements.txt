@@ -10,10 +10,30 @@ email-validator>=2.0.0
 PyJWT>=2.8.0
 cryptography>=41.0.0
 
+# Structured logging
+structlog>=24.1.0
+
 # PostgreSQL async support
 asyncpg>=0.29.0
 databases[postgresql]>=0.9.0
 aiosqlite>=0.20.0  # For local dev SQLite fallback
+
+# SQLAlchemy for schema definitions
+sqlalchemy>=2.0.0
+
+# Database migrations
+alembic>=1.13.0
+
+# Task Queue (Redis + Celery)
+redis>=5.0.0
+celery>=5.3.0
+
+# Payment Processing
+stripe>=7.0.0
+
+# AI Providers (Multi-Model Support)
+openai>=1.0.0
+anthropic>=0.18.0
 
 # Production server
 gunicorn>=21.2.0

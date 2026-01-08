@@ -540,17 +540,103 @@ def service_function(
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
+Get PostBot running in under 2 minutes:
 
-- Node.js 18+
-- Python 3.10+
+```bash
+# 1. Clone the repository
+git clone https://github.com/cliff-de-tech/linkedin-post-bot.git
+cd linkedin-post-bot
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env with your API keys (LinkedIn, Groq, etc.)
+
+# 3. Start everything
+make up
+```
+
+**That's it!** Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
+
+### Useful Commands
+
+| Command | Description |
+|---------|-------------|
+| `make up` | Start the entire stack |
+| `make down` | Stop all services |
+| `make logs` | View all logs |
+| `make worker-logs` | Debug Celery background tasks |
+| `make shell` | Open shell in backend container |
+| `make test` | Run backend tests |
+| `make help` | Show all available commands |
+
+---
+
+## 🏗 Architecture
+
+PostBot uses a modern microservices architecture for reliability and scalability:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           POSTBOT ARCHITECTURE                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────┐         ┌─────────────┐         ┌─────────────┐          │
+│   │   Next.js   │ ──API── │   FastAPI   │ ──SQL── │ PostgreSQL  │          │
+│   │  Frontend   │         │   Backend   │         │  Database   │          │
+│   │  (port 3000)│         │  (port 8000)│         │             │          │
+│   └─────────────┘         └──────┬──────┘         └─────────────┘          │
+│                                  │                                          │
+│                           ┌──────┴──────┐                                   │
+│                           │    Redis    │                                   │
+│                           │   (broker)  │                                   │
+│                           └──────┬──────┘                                   │
+│                    ┌─────────────┼─────────────┐                            │
+│                    │                           │                            │
+│             ┌──────┴──────┐             ┌──────┴──────┐                     │
+│             │   Celery    │             │   Celery    │                     │
+│             │   Worker    │             │    Beat     │                     │
+│             │ (tasks)     │             │ (scheduler) │                     │
+│             └─────────────┘             └─────────────┘                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Components
+
+| Service | Technology | Purpose |
+|---------|------------|---------|
+| **Frontend** | Next.js 14 + React | User dashboard, post editor, settings |
+| **Backend** | FastAPI + Python 3.10+ | REST API, OAuth flows, AI generation |
+| **Worker** | Celery | Background tasks (publishing posts) |
+| **Beat** | Celery Beat | Scheduled task runner (every 60s) |
+| **Broker** | Redis | Message queue for task distribution |
+| **Database** | PostgreSQL | User data, posts, tokens (encrypted) |
+
+### Key Features
+
+- **Distributed Task Queue**: Scheduled posts are processed by Celery workers, not blocking the API
+- **Fault Tolerance**: Workers auto-retry failed posts with exponential backoff
+- **Horizontal Scaling**: Add more workers to handle higher post volume
+- **Health Checks**: All services report health status for monitoring
+
+---
+
+## Prerequisites
+
+- **Docker & Docker Compose** (recommended) OR:
+  - Node.js 18+
+  - Python 3.10+
 - Clerk account ([clerk.com](https://clerk.com))
 - LinkedIn Developer App ([developers.linkedin.com](https://www.linkedin.com/developers))
 - Groq API key ([console.groq.com](https://console.groq.com))
 
-### Installation
+---
+
+## Manual Installation (Without Docker)
+
+If you prefer running without Docker:
 
 ```bash
 # Clone repository
@@ -567,15 +653,26 @@ npm install
 cp .env.local.example .env.local  # Configure Clerk keys
 ```
 
-### Running Locally
+### Running Locally (Development)
 
 ```bash
-# Terminal 1: Start backend
-cd backend && python app.py
+# Terminal 1: Start backend API
+cd linkedin-post-bot
+python -m uvicorn backend.app:app --reload --port 8000
 
 # Terminal 2: Start frontend
-cd web && npm run dev
+cd linkedin-post-bot/web
+npm run dev
+
+# Terminal 3 (Optional): Start Celery worker for background tasks
+celery -A services.celery_app worker --loglevel=info
+
+# Terminal 4 (Optional): Start Celery beat for scheduled posts
+celery -A services.celery_app beat --loglevel=info
 ```
+
+> **Note**: For local development without Redis, scheduled posts will not auto-publish. 
+> The full Docker stack (`make up`) is recommended for testing scheduled functionality.
 
 Open [http://localhost:3000](http://localhost:3000) to access the dashboard.
 

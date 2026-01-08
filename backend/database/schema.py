@@ -153,3 +153,28 @@ tickets = Table(
     Column("status", Text, default="open"),
     Column("created_at", BigInteger),
 )
+
+# =============================================================================
+# TABLE: subscriptions
+# Stores Stripe subscription data linked to users
+# =============================================================================
+subscriptions = Table(
+    "subscriptions",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Text, nullable=False, unique=True),  # Clerk user ID
+    Column("stripe_customer_id", String(255), unique=True),  # cus_xxxxx
+    Column("stripe_subscription_id", String(255), unique=True),  # sub_xxxxx
+    Column("plan_id", String(255)),  # price_xxxxx (Stripe Price ID)
+    Column("status", String(50), default="inactive"),  # active, past_due, canceled, trialing
+    Column("current_period_start", BigInteger),  # Unix timestamp
+    Column("current_period_end", BigInteger),  # Unix timestamp
+    Column("cancel_at_period_end", Integer, default=0),  # Boolean: 1 if scheduled to cancel
+    Column("created_at", BigInteger),
+    Column("updated_at", BigInteger),
+)
+
+# Indexes for subscriptions
+Index("idx_subscriptions_user", subscriptions.c.user_id)
+Index("idx_subscriptions_customer", subscriptions.c.stripe_customer_id)
+Index("idx_subscriptions_status", subscriptions.c.status)

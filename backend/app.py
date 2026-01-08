@@ -50,11 +50,12 @@ validate_environment()
 # =============================================================================
 # SERVICE IMPORTS - FAIL FAST (No defensive try/except)
 # =============================================================================
-# Scheduler worker
-from services.scheduler import start_scheduler_async, stop_scheduler
-
-# Database
+# Database connection
 from services.db import connect_db, disconnect_db
+
+# NOTE: Background task scheduling is now handled by Celery workers.
+# See services/celery_app.py and services/tasks.py
+# Start workers with: celery -A services.celery_app worker --beat --loglevel=info
 
 logger.info("Core services imported successfully")
 
@@ -108,21 +109,24 @@ async def global_exception_handler(request: Request, exc: Exception):
 # =============================================================================
 @app.on_event("startup")
 async def startup():
-    """Initialize database connection pool and start scheduler.
+    """Initialize database connection pool.
     
     Note: Schema is managed by Alembic migrations.
     Run 'alembic upgrade head' to apply migrations.
+    
+    Background Tasks: Scheduled post publishing is now handled by Celery.
+    The API server no longer runs background loops - this improves:
+    - Horizontal scaling (multiple API replicas without duplicate tasks)
+    - Reliability (tasks survive API restarts)
+    - Observability (Celery provides task monitoring)
     """
     await connect_db()
-    # NOTE: init_tables() removed - use Alembic migrations instead
-    await start_scheduler_async()
-    logger.info("Application startup complete")
+    logger.info("Application startup complete (Celery handles background tasks)")
 
 
 @app.on_event("shutdown")
 async def shutdown():
-    """Close database connection pool and stop scheduler."""
-    stop_scheduler()
+    """Close database connection pool."""
     await disconnect_db()
     logger.info("Application shutdown complete")
 
@@ -155,6 +159,9 @@ try:
     from routes.github import router as github_router, auth_router as github_auth_router
     from routes.linkedin import router as linkedin_router, auth_router as linkedin_auth_router
     
+    # Import payment routers
+    from routes.payments import router as payments_router, webhook_router as stripe_webhook_router
+    
     # Mount API routers
     app.include_router(auth_router)
     app.include_router(feedback_router)
@@ -163,10 +170,14 @@ try:
     app.include_router(settings_router)
     app.include_router(github_router)
     app.include_router(linkedin_router)
+    app.include_router(payments_router)
     
     # Mount OAuth routers (no /api prefix)
     app.include_router(github_auth_router)
     app.include_router(linkedin_auth_router)
+    
+    # Mount Stripe webhook router (no /api prefix for Stripe callbacks)
+    app.include_router(stripe_webhook_router)
     
     logger.info("All routers loaded successfully")
 except ImportError as e:

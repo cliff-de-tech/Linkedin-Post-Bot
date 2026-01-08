@@ -1,27 +1,112 @@
+"""
+AI Service - Multi-Model Router
+
+This service provides a unified interface for AI-powered LinkedIn post generation
+with support for multiple providers:
+- Groq (Free tier) - Default, uses Llama 3.3 70B
+- OpenAI (Pro tier) - GPT-4o
+- Anthropic (Pro tier) - Claude 3.5 Sonnet
+
+TIER ENFORCEMENT:
+- Free users are ALWAYS routed to Groq, even if they request premium models
+- Pro users can choose any provider
+
+The same system prompts and persona context are used across all providers
+to ensure consistent output quality regardless of model.
+"""
 import os
-import datetime
-import logging
-from dateutil import parser
-from groq import Groq
+import random
+import uuid
+from typing import Optional, Literal
+from enum import Enum
+from dataclasses import dataclass
 
-logger = logging.getLogger(__name__)
+import structlog
 
-# Load .env file for local development
+# Optional AI provider imports (installed via requirements.txt)
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    Groq = None  # type: ignore
+    GROQ_AVAILABLE = False
+
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OpenAI = None  # type: ignore
+    OPENAI_AVAILABLE = False
+
+try:
+    from anthropic import Anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    Anthropic = None  # type: ignore
+    ANTHROPIC_AVAILABLE = False
+
+logger = structlog.get_logger(__name__)
+
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Load environment variables
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
-    pass  # dotenv not installed, will use system environment variables
+    pass
 
-# Load config
-# CREDENTIAL CLASSIFICATION:
-# - GROQ_API_KEY: (A) App-level secret OR (C) User-provided - can be overridden per-user via groq_api_key param
-# - GITHUB_USERNAME: (C) User-provided identifier - default for CLI, overridden per-user in web
+# API Keys
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
-GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'cliff-de-tech')  # Fallback for CLI mode only
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'cliff-de-tech')
+
+# Model configurations
+GROQ_MODEL = "llama-3.3-70b-versatile"
+OPENAI_MODEL = "gpt-4o"
+ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
+
 
 # =============================================================================
-# PROMPT TEMPLATES
+# TYPES & ENUMS
+# =============================================================================
+
+class ModelProvider(str, Enum):
+    """Available AI model providers."""
+    GROQ = "groq"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+
+
+class SubscriptionTier(str, Enum):
+    """User subscription tiers."""
+    FREE = "free"
+    PRO = "pro"
+    ENTERPRISE = "enterprise"
+
+
+# Providers available to each tier
+TIER_ALLOWED_PROVIDERS = {
+    SubscriptionTier.FREE: [ModelProvider.GROQ],
+    SubscriptionTier.PRO: [ModelProvider.GROQ, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
+    SubscriptionTier.ENTERPRISE: [ModelProvider.GROQ, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
+}
+
+
+@dataclass
+class GenerationResult:
+    """Result of AI post generation."""
+    content: str
+    provider: ModelProvider
+    model: str
+    was_downgraded: bool = False  # True if user requested premium but got free
+
+
+# =============================================================================
+# PROMPT TEMPLATES (Shared across all providers)
 # =============================================================================
 
 BASE_PERSONA = """You are writing LinkedIn posts for Clifford (Darko) Opoku-Sarkodie, a Creative Technologist, Web Developer, and CS Student.
@@ -91,7 +176,6 @@ STRUCTURE:
 TONE: Professional, capable, results-oriented, eager to contribute.
 """,
 
-    # New tones for variety in Bot Mode
     "excited": """
 OBJECTIVE: Write a HIGH ENERGY post celebrating coding momentum!
 
@@ -144,7 +228,7 @@ STRUCTURE:
 4. Closing: Something relatable
 5. Hashtags: casual and friendly
 
-TONE: Relaxed, friendly, conversational, like a chat over coffee. Use "haha" or "lol" if natural.
+TONE: Relaxed, friendly, conversational, like a chat over coffee.
 """,
 
     "motivational": """
@@ -218,10 +302,7 @@ TONE: Curious, humble, genuinely seeking input, community-focused.
 """
 }
 
-# =============================================================================
-# ACTIVITY-SPECIFIC TONE MODIFIERS
-# Each activity type gets a unique voice and focus
-# =============================================================================
+# Activity-specific tone modifiers
 ACTIVITY_TONES = {
     "push": {
         "tone": "Energetic and progress-focused",
@@ -267,7 +348,12 @@ ACTIVITY_TONES = {
     }
 }
 
-def get_prompt_for_style(style="standard"):
+
+# =============================================================================
+# PROMPT BUILDING HELPERS
+# =============================================================================
+
+def get_prompt_for_style(style: str = "standard") -> str:
     """Get the full system prompt for a specific style."""
     template = TEMPLATES.get(style, TEMPLATES["standard"])
     
@@ -303,31 +389,20 @@ def get_activity_tone_modifier(activity_type: str) -> str:
 IMPORTANT: Match the emotional energy and focus to this specific activity type. Make it feel natural and authentic."""
 
 
-# Initialize Groq client (guarded)
-client = None
-if GROQ_API_KEY:
-    try:
-        client = Groq(api_key=GROQ_API_KEY)
-    except Exception as e:
-        logger.debug(f"Failed to initialize Groq client: {e}")
-        client = None
-
-
-def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "standard", persona_context: str = None):
-    """Use Groq/Gemini-style model to draft a LinkedIn post based on context.
-    
-    Args:
-        context_data: Dictionary with activity context
-        groq_api_key: Optional per-user Groq API key. Falls back to env var if not provided.
-        style: Post style template ('standard', 'build_in_public', 'thought_leadership', 'job_search')
-        persona_context: Optional pre-built persona prompt string from persona_service.build_persona_prompt()
+def build_system_prompt(
+    style: str = "standard",
+    activity_type: str = "generic",
+    persona_context: Optional[str] = None,
+) -> str:
     """
-    import random
-    import uuid
+    Build the complete system prompt for any provider.
     
-    logger.info(f"🧠 AI service: generating {style} post...")
+    This ensures consistent prompting across Groq, OpenAI, and Anthropic.
+    """
+    # Base prompt for style
+    system_prompt = get_prompt_for_style(style)
     
-    # Generate unique seed for this request
+    # Generate uniqueness instructions
     unique_seed = str(uuid.uuid4())[:8]
     random_angle = random.choice([
         "focus on a surprising insight",
@@ -342,23 +417,6 @@ def generate_post_with_ai(context_data, groq_api_key: str = None, style: str = "
         "be conversational"
     ])
     
-    # Determine which API key to use
-    api_key = groq_api_key or GROQ_API_KEY
-    if not api_key:
-        logger.warning("⚠️  No Groq API key provided (neither user key nor GROQ_API_KEY env var)")
-        return None
-    
-    # Create client with the appropriate key
-    try:
-        active_client = Groq(api_key=api_key)
-    except Exception as e:
-        logger.warning(f"⚠️  Failed to initialize Groq client: {e}")
-        return None
-    
-    # Select prompt based on style
-    system_prompt = get_prompt_for_style(style)
-    
-    # Add uniqueness instructions
     uniqueness_prompt = f"""
 
 === CRITICAL: UNIQUENESS REQUIREMENT ===
@@ -375,22 +433,28 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
 === END UNIQUENESS ===
 """
     
-    system_prompt = system_prompt + uniqueness_prompt
+    system_prompt += uniqueness_prompt
     
-    # Inject persona context if provided
+    # Add persona context if provided
     if persona_context:
-        system_prompt = system_prompt + "\n\n" + persona_context
-        logger.debug("Persona context injected into prompt")
+        system_prompt += "\n\n" + persona_context
     
-    # Format the prompt based on context type
-    activity_type = context_data.get('type', 'generic')
-    user_content = ""
-    
-    # Add activity-specific tone modifier to the system prompt
+    # Add activity tone modifier
     activity_tone = get_activity_tone_modifier(activity_type)
-    system_prompt = system_prompt + activity_tone
+    system_prompt += activity_tone
     
-    # Random elements to inject variety
+    return system_prompt
+
+
+def build_user_prompt(context_data: dict) -> str:
+    """
+    Build the user prompt from context data.
+    
+    This ensures consistent prompting across all providers.
+    """
+    activity_type = context_data.get('type', 'generic')
+    
+    # Random elements for variety
     push_vibes = [
         "momentum and flow", "grinding and growing", "small wins stacking up",
         "the builder mindset", "shipping mode activated", "code flowing like water",
@@ -428,7 +492,12 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
         "be honest about your vision"
     ]
     
-    if context_data.get('type') == 'push':
+    generic_angles = [
+        "share a personal insight", "be reflective", "inspire action",
+        "tell a quick story", "ask a thought-provoking question"
+    ]
+    
+    if activity_type == 'push':
         commits = context_data.get('commits', 0)
         repo = context_data.get('repo', 'unknown-repo')
         description = context_data.get('description', '')
@@ -436,20 +505,20 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
         vibe = random.choice(push_vibes)
         angle = random.choice(push_angles)
         
-        user_content = f"""
-        Create a LinkedIn post about coding progress.
+        return f"""
+Create a LinkedIn post about coding progress.
+
+FACTS ONLY (use these creatively):
+- Pushed {commits} commits to '{repo}'
+- Project context: {description}
+
+YOUR CREATIVE DIRECTION: {angle}
+ENERGY: {vibe}
+
+BE UNIQUE. Don't use generic phrases. Make it authentically yours.
+"""
         
-        FACTS ONLY (use these creatively):
-        - Pushed {commits} commits to '{repo}'
-        - Project context: {description}
-        
-        YOUR CREATIVE DIRECTION: {angle}
-        ENERGY: {vibe}
-        
-        BE UNIQUE. Don't use generic phrases. Make it authentically yours.
-        """
-        
-    elif context_data.get('type') == 'pull_request':
+    elif activity_type == 'pull_request':
         title = context_data.get('title', 'Unknown PR')
         repo = context_data.get('repo', 'unknown-repo')
         body = context_data.get('body', '')
@@ -459,21 +528,21 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
         vibe = random.choice(pr_vibes)
         angle = random.choice(pr_angles)
         
-        user_content = f"""
-        Create a LinkedIn post about a pull request.
+        return f"""
+Create a LinkedIn post about a pull request.
+
+FACTS ONLY:
+- PR was {state_str} in '{repo}'
+- Title: {title}
+- Description: {body}
+
+YOUR CREATIVE DIRECTION: {angle}
+ENERGY: {vibe}
+
+BE UNIQUE. Avoid clichés. Write from the heart.
+"""
         
-        FACTS ONLY:
-        - PR was {state_str} in '{repo}'
-        - Title: {title}
-        - Description: {body}
-        
-        YOUR CREATIVE DIRECTION: {angle}
-        ENERGY: {vibe}
-        
-        BE UNIQUE. Avoid clichés. Write from the heart.
-        """
-        
-    elif context_data.get('type') == 'new_repo':
+    elif activity_type == 'new_repo':
         repo = context_data.get('repo', 'New Project')
         description = context_data.get('description', '')
         language = context_data.get('language', 'Code')
@@ -481,62 +550,386 @@ YOU MUST GENERATE A COMPLETELY UNIQUE POST:
         vibe = random.choice(new_repo_vibes)
         angle = random.choice(new_repo_angles)
         
-        user_content = f"""
-        Create a LinkedIn post about launching a new project.
-        
-        FACTS ONLY:
-        - New project: {repo}
-        - What it does: {description}
-        - Tech: {language}
-        
-        YOUR CREATIVE DIRECTION: {angle}
-        ENERGY: {vibe}
-        
-        BE UNIQUE. This is YOUR story. Tell it your way.
-        """
+        return f"""
+Create a LinkedIn post about launching a new project.
+
+FACTS ONLY:
+- New project: {repo}
+- What it does: {description}
+- Tech: {language}
+
+YOUR CREATIVE DIRECTION: {angle}
+ENERGY: {vibe}
+
+BE UNIQUE. This is YOUR story. Tell it your way.
+"""
         
     else:
         # Generic or manual context
         topic = context_data.get('topic', 'Coding & Development')
         details = context_data.get('details', 'Sharing thoughts on my developer journey.')
         
-        generic_angles = [
-            "share a personal insight", "be reflective", "inspire action",
-            "tell a quick story", "ask a thought-provoking question"
-        ]
-        
-        user_content = f"""
-        Create a LinkedIn post about: {topic}
-        
-        Context: {details}
-        
-        YOUR CREATIVE DIRECTION: {random.choice(generic_angles)}
-        
-        BE UNIQUE. Make it memorable. Skip the corporate speak.
-        """
+        return f"""
+Create a LinkedIn post about: {topic}
 
+Context: {details}
+
+YOUR CREATIVE DIRECTION: {random.choice(generic_angles)}
+
+BE UNIQUE. Make it memorable. Skip the corporate speak.
+"""
+
+
+# =============================================================================
+# PROVIDER IMPLEMENTATIONS
+# =============================================================================
+
+def _generate_with_groq(
+    system_prompt: str,
+    user_prompt: str,
+    api_key: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Generate post using Groq (Llama 3.3 70B).
+    
+    This is the FREE tier provider - fast and high quality.
+    """
+    if not GROQ_AVAILABLE:
+        logger.error("Groq package not installed")
+        return None
+    
+    key = api_key or GROQ_API_KEY
+    if not key:
+        logger.warning("No Groq API key available")
+        return None
+    
     try:
-        chat_completion = active_client.chat.completions.create(
+        client = Groq(api_key=key)
+        
+        response = client.chat.completions.create(
             messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_content,
-                }
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.95,  # Maximum creativity for unique posts
+            model=GROQ_MODEL,
+            temperature=0.95,
             max_tokens=600,
         )
         
-        return chat_completion.choices[0].message.content
+        return response.choices[0].message.content
         
     except Exception as e:
-        print(f"❌ Error generating post with Groq: {e}")
+        logger.error("groq_generation_failed", error=str(e))
         return None
+
+
+def _generate_with_openai(
+    system_prompt: str,
+    user_prompt: str,
+    api_key: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Generate post using OpenAI GPT-4o.
+    
+    This is a PRO tier provider - premium quality.
+    """
+    if not OPENAI_AVAILABLE:
+        logger.error("OpenAI package not installed")
+        return None
+    
+    key = api_key or OPENAI_API_KEY
+    if not key:
+        logger.warning("No OpenAI API key available")
+        return None
+    
+    try:
+        client = OpenAI(api_key=key)
+        
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            model=OPENAI_MODEL,
+            temperature=0.95,
+            max_tokens=600,
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        logger.error("openai_generation_failed", error=str(e))
+        return None
+
+
+def _generate_with_anthropic(
+    system_prompt: str,
+    user_prompt: str,
+    api_key: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Generate post using Anthropic Claude 3.5 Sonnet.
+    
+    This is a PRO tier provider - excellent for creative writing.
+    """
+    if not ANTHROPIC_AVAILABLE:
+        logger.error("Anthropic package not installed")
+        return None
+    
+    key = api_key or ANTHROPIC_API_KEY
+    if not key:
+        logger.warning("No Anthropic API key available")
+        return None
+    
+    try:
+        client = Anthropic(api_key=key)
+        
+        response = client.messages.create(
+            model=ANTHROPIC_MODEL,
+            max_tokens=600,
+            system=system_prompt,
+            messages=[
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        
+        # Anthropic returns content as a list of blocks
+        return response.content[0].text
+        
+    except Exception as e:
+        logger.error("anthropic_generation_failed", error=str(e))
+        return None
+
+
+# =============================================================================
+# TIER ENFORCEMENT & ROUTING
+# =============================================================================
+
+async def get_user_tier(user_id: Optional[str]) -> SubscriptionTier:
+    """
+    Get the user's subscription tier.
+    
+    Returns FREE if user_id is None or settings can't be retrieved.
+    """
+    if not user_id:
+        return SubscriptionTier.FREE
+    
+    try:
+        from services.user_settings import get_user_settings
+        settings = await get_user_settings(user_id)
+        
+        if settings:
+            tier_str = settings.get('subscription_tier', 'free')
+            try:
+                return SubscriptionTier(tier_str)
+            except ValueError:
+                return SubscriptionTier.FREE
+        
+        return SubscriptionTier.FREE
+        
+    except Exception as e:
+        logger.warning("failed_to_get_user_tier", user_id=user_id, error=str(e))
+        return SubscriptionTier.FREE
+
+
+def enforce_tier_provider(
+    requested_provider: ModelProvider,
+    user_tier: SubscriptionTier,
+) -> tuple[ModelProvider, bool]:
+    """
+    Enforce tier-based provider restrictions.
+    
+    Args:
+        requested_provider: The provider the user requested
+        user_tier: The user's subscription tier
+        
+    Returns:
+        Tuple of (actual_provider, was_downgraded)
+    """
+    allowed = TIER_ALLOWED_PROVIDERS.get(user_tier, [ModelProvider.GROQ])
+    
+    if requested_provider in allowed:
+        return requested_provider, False
+    
+    # Downgrade to Groq (always allowed)
+    logger.info(
+        "provider_downgraded",
+        requested=requested_provider.value,
+        actual=ModelProvider.GROQ.value,
+        tier=user_tier.value,
+    )
+    return ModelProvider.GROQ, True
+
+
+# =============================================================================
+# MAIN GENERATION FUNCTION
+# =============================================================================
+
+async def generate_linkedin_post(
+    context_data: dict,
+    user_id: Optional[str] = None,
+    model_provider: str = "groq",
+    style: str = "standard",
+    groq_api_key: Optional[str] = None,
+    openai_api_key: Optional[str] = None,
+    anthropic_api_key: Optional[str] = None,
+    persona_context: Optional[str] = None,
+) -> Optional[GenerationResult]:
+    """
+    Generate a LinkedIn post using the specified AI provider.
+    
+    TIER ENFORCEMENT:
+    - Free tier users are ALWAYS routed to Groq, regardless of requested provider
+    - Pro tier users can use any provider (groq, openai, anthropic)
+    
+    Args:
+        context_data: Dictionary with activity context (type, repo, commits, etc.)
+        user_id: Clerk user ID (used for tier lookup)
+        model_provider: Requested provider ('groq', 'openai', 'anthropic')
+        style: Post style template
+        groq_api_key: Optional override for Groq API key
+        openai_api_key: Optional override for OpenAI API key
+        anthropic_api_key: Optional override for Anthropic API key
+        persona_context: Optional persona prompt string
+        
+    Returns:
+        GenerationResult with content, provider used, and downgrade status
+    """
+    log = logger.bind(
+        user_id=user_id[:8] + "..." if user_id else None,
+        requested_provider=model_provider,
+        style=style,
+    )
+    log.info("generating_linkedin_post")
+    
+    # Parse requested provider
+    try:
+        requested = ModelProvider(model_provider.lower())
+    except ValueError:
+        requested = ModelProvider.GROQ
+    
+    # Get user tier and enforce restrictions
+    user_tier = await get_user_tier(user_id)
+    actual_provider, was_downgraded = enforce_tier_provider(requested, user_tier)
+    
+    log = log.bind(
+        tier=user_tier.value,
+        actual_provider=actual_provider.value,
+        was_downgraded=was_downgraded,
+    )
+    
+    if was_downgraded:
+        log.info("user_downgraded_to_free_provider")
+    
+    # Build prompts (same for all providers)
+    activity_type = context_data.get('type', 'generic')
+    system_prompt = build_system_prompt(style, activity_type, persona_context)
+    user_prompt = build_user_prompt(context_data)
+    
+    # Route to appropriate provider
+    content = None
+    model_used = ""
+    
+    if actual_provider == ModelProvider.GROQ:
+        content = _generate_with_groq(system_prompt, user_prompt, groq_api_key)
+        model_used = GROQ_MODEL
+        
+    elif actual_provider == ModelProvider.OPENAI:
+        content = _generate_with_openai(system_prompt, user_prompt, openai_api_key)
+        model_used = OPENAI_MODEL
+        
+    elif actual_provider == ModelProvider.ANTHROPIC:
+        content = _generate_with_anthropic(system_prompt, user_prompt, anthropic_api_key)
+        model_used = ANTHROPIC_MODEL
+    
+    if not content:
+        log.error("generation_failed")
+        return None
+    
+    log.info("generation_complete", content_length=len(content))
+    
+    return GenerationResult(
+        content=content,
+        provider=actual_provider,
+        model=model_used,
+        was_downgraded=was_downgraded,
+    )
+
+
+# =============================================================================
+# LEGACY COMPATIBILITY WRAPPER
+# =============================================================================
+
+def generate_post_with_ai(
+    context_data: dict,
+    groq_api_key: Optional[str] = None,
+    style: str = "standard",
+    persona_context: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Legacy synchronous wrapper for backward compatibility.
+    
+    This maintains the old API signature while using the new multi-model router.
+    Always uses Groq (free tier behavior).
+    """
+    import asyncio
+    
+    logger.info(f"🧠 AI service: generating {style} post (legacy wrapper)...")
+    
+    async def _generate():
+        result = await generate_linkedin_post(
+            context_data=context_data,
+            user_id=None,  # No user = free tier = Groq
+            model_provider="groq",
+            style=style,
+            groq_api_key=groq_api_key,
+            persona_context=persona_context,
+        )
+        return result.content if result else None
+    
+    # Run async function in sync context
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If we're already in an async context, create a new task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, _generate())
+                return future.result()
+        else:
+            return loop.run_until_complete(_generate())
+    except RuntimeError:
+        # No event loop, create one
+        return asyncio.run(_generate())
+
+
+# =============================================================================
+# UTILITY FUNCTIONS
+# =============================================================================
+
+def get_available_providers() -> dict:
+    """
+    Get information about available providers and their status.
+    
+    Returns dict with provider availability based on configured API keys.
+    """
+    return {
+        "groq": {
+            "available": bool(GROQ_API_KEY),
+            "model": GROQ_MODEL,
+            "tier": "free",
+        },
+        "openai": {
+            "available": bool(OPENAI_API_KEY),
+            "model": OPENAI_MODEL,
+            "tier": "pro",
+        },
+        "anthropic": {
+            "available": bool(ANTHROPIC_API_KEY),
+            "model": ANTHROPIC_MODEL,
+            "tier": "pro",
+        },
+    }
 
 
 def synthesize_hashtags(post_content: str, desired: int = 18) -> str:
@@ -549,8 +942,6 @@ def synthesize_hashtags(post_content: str, desired: int = 18) -> str:
         
     Returns:
         String of space-separated hashtags
-        
-    Used as fallback when AI doesn't generate proper hashtags.
     """
     keywords_map = {
         'design': '#Design', 'ui': '#UI', 'ux': '#UX', 'frontend': '#Frontend',
