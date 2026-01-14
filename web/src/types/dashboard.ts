@@ -22,22 +22,22 @@ export type {
 import type { components } from '@shared/contracts/index';
 
 /** Request body for saving a post */
-export type SavePostRequest = components['schemas']['SavePostRequest'];
+export type SavePostRequest = components['schemas']['PostCreateRequest'];
 
 /** Request body for batch post generation */
 export type BatchGenerateRequest = components['schemas']['BatchGenerateRequest'];
 
 /** Request body for publishing to LinkedIn */
-export type FullPublishRequest = components['schemas']['FullPublishRequest'];
+export type FullPublishRequest = components['schemas']['PublishFullRequest'];
 
 /** Request body for scanning GitHub activity */
 export type ScanRequest = components['schemas']['ScanRequest'];
 
 /** Request body for scheduling a post */
-export type SchedulePostRequest = components['schemas']['SchedulePostRequest'];
+export type SchedulePostRequest = components['schemas']['ScheduleRequest'];
 
 /** User settings request */
-export type UserSettingsRequest = components['schemas']['UserSettingsRequest'];
+export type UserSettingsRequest = components['schemas']['SettingsRequest'];
 
 /** Image preview request */
 export type ImagePreviewRequest = components['schemas']['ImagePreviewRequest'];

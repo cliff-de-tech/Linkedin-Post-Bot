@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { CompactCharCounter } from './CharacterCounter';
+import { CompactCharCounter } from '@/components/ui/CharacterCounter';
 import { showToast } from '@/lib/toast';
 
 interface PostPreviewModalProps {
@@ -304,10 +304,10 @@ export function PostPreviewModal({
                             onClick={onPublish}
                             disabled={isPublishing || isOverLimit}
                             className={`flex-[2] px-4 py-2.5 rounded-full font-semibold text-[14px] transition-colors flex items-center justify-center gap-2 ${isOverLimit
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : testMode
-                                        ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                                        : 'bg-[#0a66c2] hover:bg-[#004182] text-white'
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : testMode
+                                    ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                                    : 'bg-[#0a66c2] hover:bg-[#004182] text-white'
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             {isPublishing ? (
