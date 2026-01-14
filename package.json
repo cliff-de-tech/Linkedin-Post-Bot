@@ -1,5 +1,5 @@
 {
-    "name": "linkedin-post-bot",
+    "name": "post-bot",
     "version": "1.0.0",
     "description": "AI-powered LinkedIn content automation from GitHub activity",
     "private": true,
