@@ -1,5 +1,5 @@
 import React from 'react';
-import { Skeleton, SkeletonActivityItem } from '@/components/ui/SkeletonLoader';
+import { Skeleton, SkeletonActivityItem } from '@/components/ui/Skeleton';
 import { GitHubActivity } from '@/types/dashboard';
 
 interface ActivityFeedProps {

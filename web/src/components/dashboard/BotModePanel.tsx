@@ -12,6 +12,9 @@ import { PostQueuePanel } from './PostQueuePanel';
 import { ImageSelector } from './ImageSelector';
 import { ActivitySkeleton } from '@/components/ui/Skeleton';
 import { NoActivitiesState } from '@/components/ui/EmptyState';
+import { Button } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
+import { Card } from '@/components/ui/Card';
 
 // Import API types from shared contracts
 import type {
@@ -406,7 +409,7 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                 Time Range
                                 {tier === 'free' && <span className="ml-1 text-orange-500">🔒</span>}
                             </label>
-                            <select
+                            <Select
                                 value={searchDays}
                                 onChange={(e) => {
                                     if (tier === 'free') {
@@ -416,7 +419,7 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                     setSearchDays(Number(e.target.value));
                                 }}
                                 disabled={tier === 'free'}
-                                className={`px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 ${tier === 'free' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                className={tier === 'free' ? 'opacity-60 cursor-not-allowed' : ''}
                             >
                                 {DAY_OPTIONS.map(days => (
                                     <option key={days} value={days} disabled={tier === 'free' && days !== 1}>
@@ -424,7 +427,7 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                         {tier === 'free' && days !== 1 ? ' 🔒' : ''}
                                     </option>
                                 ))}
-                            </select>
+                            </Select>
                             {tier === 'free' && (
                                 <span className="text-xs text-orange-500 mt-1 ml-1">Pro: Custom range</span>
                             )}
@@ -436,7 +439,7 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                 Activity Type
                                 {tier === 'free' && <span className="ml-1 text-orange-500">🔒</span>}
                             </label>
-                            <select
+                            <Select
                                 value={activityType}
                                 onChange={(e) => {
                                     if (tier === 'free') {
@@ -446,7 +449,7 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                     setActivityType(e.target.value);
                                 }}
                                 disabled={tier === 'free'}
-                                className={`px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 min-w-[180px] ${tier === 'free' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                className={`min-w-[180px] ${tier === 'free' ? 'opacity-60 cursor-not-allowed' : ''}`}
                             >
                                 {ACTIVITY_TYPES.map(type => (
                                     <option key={type.value} value={type.value} disabled={tier === 'free' && type.value !== 'all'}>
@@ -454,7 +457,7 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                                         {tier === 'free' && type.value !== 'all' ? ' 🔒' : ''}
                                     </option>
                                 ))}
-                            </select>
+                            </Select>
                             {tier === 'free' && (
                                 <span className="text-xs text-orange-500 mt-1 ml-1">Pro: Filter by type</span>
                             )}
@@ -529,23 +532,21 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
 
                     </div>
 
-                    <button
+                    <Button
                         onClick={handleScanGitHub}
-                        disabled={scanning}
-                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 mx-auto"
+                        isLoading={scanning}
+                        variant="premium"
+                        size="lg"
+                        className="mx-auto flex items-center gap-2"
                     >
-                        {scanning ? (
-                            <>
-                                <span className="animate-spin">⏳</span>
-                                Scanning...
-                            </>
-                        ) : (
+                        {!scanning && (
                             <>
                                 <span>🔍</span>
                                 Scan GitHub Activity
                             </>
                         )}
-                    </button>
+                        {scanning && "Scanning..."}
+                    </Button>
                 </div>
             )}
 

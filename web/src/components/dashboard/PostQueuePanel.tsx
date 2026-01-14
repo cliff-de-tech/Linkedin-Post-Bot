@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { CompactCharCounter } from '@/components/ui/CharacterCounter';
-import { PostPreviewModal } from '@/components/ui/PostPreviewModal';
+import { PostPreviewModal } from '@/components/modals/PostPreviewModal';
 import { showToast } from '@/lib/toast';
 
 interface Post {
@@ -356,14 +356,14 @@ export function PostQueuePanel({
                                             onClick={() => onPublish(post.id)}
                                             disabled={isPublishing === post.id || post.status === 'published' || isLimitReached}
                                             className={`px-4 py-2 text-sm rounded-lg font-semibold transition-all flex items-center gap-2 ${isLimitReached && post.status !== 'published'
-                                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-not-allowed opacity-75'
-                                                    : post.status === 'published'
-                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-not-allowed'
-                                                        : isPublishing === post.id
-                                                            ? 'bg-blue-400 text-white cursor-wait'
-                                                            : testMode
-                                                                ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg'
-                                                                : 'bg-[#0a66c2] hover:bg-[#004182] text-white shadow-md hover:shadow-lg'
+                                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-not-allowed opacity-75'
+                                                : post.status === 'published'
+                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-not-allowed'
+                                                    : isPublishing === post.id
+                                                        ? 'bg-blue-400 text-white cursor-wait'
+                                                        : testMode
+                                                            ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg'
+                                                            : 'bg-[#0a66c2] hover:bg-[#004182] text-white shadow-md hover:shadow-lg'
                                                 }`}
                                         >
                                             {isLimitReached && post.status !== 'published' ? (

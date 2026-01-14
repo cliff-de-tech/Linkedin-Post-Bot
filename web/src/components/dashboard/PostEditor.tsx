@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { PostContext } from '@/types/dashboard';
 import { showToast } from '@/lib/toast';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Card } from '@/components/ui/Card';
 
 // AI Model options with tier restrictions
 type ModelProvider = 'groq' | 'openai' | 'anthropic';
@@ -14,26 +18,26 @@ interface AIModel {
 }
 
 const AI_MODELS: AIModel[] = [
-    { 
-        value: 'groq', 
-        label: 'Llama 3 (Groq)', 
+    {
+        value: 'groq',
+        label: 'Llama 3 (Groq)',
         description: 'Fast & Free',
         icon: '⚡',
-        proOnly: false 
+        proOnly: false
     },
-    { 
-        value: 'openai', 
-        label: 'GPT-4o (OpenAI)', 
+    {
+        value: 'openai',
+        label: 'GPT-4o (OpenAI)',
         description: 'High Intelligence',
         icon: '🧠',
-        proOnly: true 
+        proOnly: true
     },
-    { 
-        value: 'anthropic', 
-        label: 'Claude 3.5 (Anthropic)', 
+    {
+        value: 'anthropic',
+        label: 'Claude 3.5 (Anthropic)',
         description: 'Natural Writing',
         icon: '✨',
-        proOnly: true 
+        proOnly: true
     },
 ];
 
@@ -89,7 +93,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
 
     const handleModelChange = (model: ModelProvider) => {
         const modelInfo = AI_MODELS.find(m => m.value === model);
-        
+
         // Check if free user trying to select pro model
         if (tier === 'free' && modelInfo?.proOnly) {
             showToast.error('🔒 Upgrade to Pro to use premium AI models!');
@@ -119,10 +123,9 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                         Post Type
                         {tier === 'free' && <span className="ml-2 text-orange-500 text-xs">🔒 Some types locked</span>}
                     </label>
-                    <select
+                    <Select
                         value={context.type}
                         onChange={handlePostTypeChange}
-                        className="w-full bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                         aria-label="Post type"
                     >
                         {POST_TYPES.map((type) => (
@@ -134,7 +137,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                                 {type.icon} {type.label} {tier === 'free' && !type.freeAvailable ? '🔒 Pro' : ''}
                             </option>
                         ))}
-                    </select>
+                    </Select>
                     {tier === 'free' && (
                         <p className="mt-1 text-xs text-orange-500">
                             Pro: Unlock Pull Request & New Repo post types
@@ -146,11 +149,10 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                     <>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Number of Commits</label>
-                            <input
+                            <Input
                                 type="number"
                                 value={context.commits}
                                 onChange={(e) => setContext({ ...context, commits: parseInt(e.target.value) })}
-                                className="w-full bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                                 min="1"
                                 placeholder="1"
                                 aria-label="Number of commits"
@@ -158,31 +160,28 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Repository Name</label>
-                            <input
+                            <Input
                                 type="text"
                                 value={context.repo}
                                 onChange={(e) => setContext({ ...context, repo: e.target.value })}
-                                className="w-full bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                                 placeholder="my-awesome-project"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Full Repository Path</label>
-                            <input
+                            <Input
                                 type="text"
                                 value={context.full_repo}
                                 onChange={(e) => setContext({ ...context, full_repo: e.target.value })}
-                                className="w-full bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                                 placeholder="username/my-awesome-project"
                             />
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Time Ago</label>
-                            <input
+                            <Input
                                 type="text"
                                 value={context.date}
                                 onChange={(e) => setContext({ ...context, date: e.target.value })}
-                                className="w-full bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 dark:text-white"
                                 placeholder="2 hours ago"
                             />
                         </div>
@@ -199,19 +198,18 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                         {AI_MODELS.map((model) => {
                             const isLocked = tier === 'free' && model.proOnly;
                             const isSelected = selectedModel === model.value;
-                            
+
                             return (
                                 <button
                                     key={model.value}
                                     onClick={() => handleModelChange(model.value)}
                                     disabled={loading}
-                                    className={`relative p-4 rounded-xl border-2 transition-all text-left ${
-                                        isSelected
+                                    className={`relative p-4 rounded-xl border-2 transition-all text-left ${isSelected
                                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
                                             : isLocked
                                                 ? 'border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 opacity-60 cursor-not-allowed'
                                                 : 'border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
-                                    }`}
+                                        }`}
                                 >
                                     {/* Lock icon for pro models on free tier */}
                                     {isLocked && (
@@ -221,7 +219,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                                             </svg>
                                         </div>
                                     )}
-                                    
+
                                     {/* Selected checkmark */}
                                     {isSelected && (
                                         <div className="absolute top-2 right-2">
@@ -230,7 +228,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                                             </svg>
                                         </div>
                                     )}
-                                    
+
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-lg">{model.icon}</span>
                                         <span className={`font-semibold text-sm ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}>
@@ -257,29 +255,22 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="pt-6 border-t border-gray-200 dark:border-white/10">
-                    <button
+                <div className="pt-6 border-t border-gray-200 dark:border-white/10 text-white">
+                    <Button
                         onClick={handleGenerateClick}
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center mb-3"
+                        isLoading={loading}
+                        variant="premium"
+                        size="lg"
+                        fullWidth
+                        className="mb-3"
                     >
-                        {loading ? (
-                            <>
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Generating...
-                            </>
-                        ) : (
-                            <>
-                                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                Generate Preview
-                            </>
+                        {!loading && (
+                            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
                         )}
-                    </button>
+                        Generate Preview
+                    </Button>
 
                     <div className="grid grid-cols-2 gap-3">
                         <button

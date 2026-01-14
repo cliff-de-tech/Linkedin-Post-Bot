@@ -12,7 +12,7 @@ import { PostEditor } from '@/components/dashboard/PostEditor';
 import { PostPreview } from '@/components/dashboard/PostPreview';
 import { PostHistory, Post } from '@/components/dashboard/PostHistory';
 import Analytics from '@/components/dashboard/Analytics';
-import ScheduleModal from '@/components/dashboard/ScheduleModal';
+import ScheduleModal from '@/components/modals/ScheduleModal';
 import TemplateLibrary from '@/components/dashboard/TemplateLibrary';
 import { BotModePanel } from '@/components/dashboard/BotModePanel';
 import { ImageSelector } from '@/components/dashboard/ImageSelector';
@@ -20,9 +20,9 @@ import { GitHubActivity, Template, PostContext } from '@/types/dashboard';
 import UsageCounter from '@/components/ui/UsageCounter';
 import FeatureGate from '@/components/ui/FeatureGate';
 import TierBadge from '@/components/ui/TierBadge';
-import WaitlistModal from '@/components/ui/WaitlistModal';
-import HistoryModal from '@/components/ui/HistoryModal';
-import FeedbackModal from '@/components/ui/FeedbackModal';
+import WaitlistModal from '@/components/modals/WaitlistModal';
+import HistoryModal from '@/components/modals/HistoryModal';
+import FeedbackModal from '@/components/modals/FeedbackModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
 
@@ -68,7 +68,9 @@ export default function Dashboard() {
     githubActivities,
     githubUsername,
     firstActivityContext,
-    isLoading: loadingData,
+    isLoadingStats,
+    isLoadingGithub,
+    isLoadingPosts,
     refetchStats,
     refetchPosts,
     refetchAll,
@@ -224,7 +226,7 @@ export default function Dashboard() {
       const result = await generatePreview({ context, user_id: userId, model }, token || undefined);
       setPreview(result.post || 'No post generated');
       showToast.dismiss(toastId);
-      
+
       // Show provider info if available
       if (result.was_downgraded) {
         showToast.success('Preview generated! (Using free model - upgrade to Pro for premium AI)');
@@ -475,7 +477,7 @@ export default function Dashboard() {
           <UsageCounter usage={usage} onUpgradeClick={() => setShowWaitlist(true)} />
         </div>
 
-        <StatsOverview stats={stats} loading={loadingData} />
+        <StatsOverview stats={stats} loading={isLoadingStats} />
 
 
         {/* Bot Mode Panel */}
@@ -530,7 +532,7 @@ export default function Dashboard() {
                 postsThisWeek: Math.floor(stats.posts_this_month / 4),
                 avgEngagement: 0,
               }}
-              loading={loadingData}
+              loading={isLoadingStats}
             />
           </div>
         )}
@@ -584,12 +586,12 @@ export default function Dashboard() {
 
               <ActivityFeed
                 activities={githubActivities}
-                loading={loadingData}
+                loading={isLoadingGithub}
                 selectedActivity={null} // Could extend state to track this if needed for styling
                 onSelect={handleActivityClick}
               />
 
-              {!loadingData && !githubUsername && (
+              {!isLoadingGithub && !githubUsername && (
                 <div className="text-center py-8 mt-4 border-t border-gray-100 dark:border-white/10">
                   <p className="text-gray-500 dark:text-gray-400 mb-4 text-sm">Connect your GitHub account in Settings to see your activity</p>
                   <button
@@ -653,7 +655,7 @@ export default function Dashboard() {
           created_at: String(p.created_at)
         }))}
         scheduledPosts={scheduledPosts}
-        loading={loadingData}
+        loading={isLoadingPosts}
       />
 
       {/* Feedback Modal */}

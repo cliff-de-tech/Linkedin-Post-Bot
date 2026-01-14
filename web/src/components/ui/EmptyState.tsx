@@ -18,7 +18,7 @@ export function EmptyState({
     return (
         <div className={`empty-state flex flex-col items-center justify-center p-8 ${className}`}>
             {icon && (
-                <div className="w-16 h-16 mb-4 text-gray-400 dark:text-gray-500 flex items-center justify-center text-4xl">
+                <div className="w-16 h-16 mb-4 text-gray-400 dark:text-gray-500 flex items-center justify-center text-4xl" aria-hidden="true">
                     {icon}
                 </div>
             )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Skeleton } from '@/components/ui/SkeletonLoader';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface StatsProps {
     stats: {
