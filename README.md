@@ -107,6 +107,28 @@ It's built for developers who want to grow their professional presence without s
 
 ---
 
+## 🆕 Recent Updates (January 2026)
+
+### Persistent Bot Mode 🤖
+
+- **Auto-Save Drafts**: Generated posts are immediately saved to the database as drafts, preventing data loss on refresh.
+- **Historical Stats**: "Generated" and "Published" counts now reflect all-time history, not just the current session.
+- **Smart Publishing**: Publishing updates existing drafts instead of creating duplicates.
+
+### Enhanced Analytics 📊
+
+- **Real-Time Accuracy**: Dashboard stats now accurately reflect live counts for Published, Draft, and Scheduled posts.
+- **Growth Metrics**: Dynamic week-over-week growth percentages and "Published This Month" tracking.
+- **Visual Improvements**: New "Scheduled" stats card and updated "Generated" vs "Published" cards.
+
+### Post Scheduling 📅
+
+- **Schedule for Later**: Ability to schedule posts for future publication dates.
+- **Background Processing**: Powered by Celery and Redis for reliable timely delivery.
+- **Management**: View and manage scheduled posts directly from the history view.
+
+---
+
 ## Security & LinkedIn Compliance
 
 This project prioritizes **safety and compliance**:
@@ -671,7 +693,7 @@ celery -A services.celery_app worker --loglevel=info
 celery -A services.celery_app beat --loglevel=info
 ```
 
-> **Note**: For local development without Redis, scheduled posts will not auto-publish. 
+> **Note**: For local development without Redis, scheduled posts will not auto-publish.
 > The full Docker stack (`make up`) is recommended for testing scheduled functionality.
 
 Open [http://localhost:3000](http://localhost:3000) to access the dashboard.

@@ -95,6 +95,9 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
     const [posts, setPosts] = useState<Post[]>([]);
     const [images, setImages] = useState<UnsplashImage[]>([]);
 
+    // Stats state
+    const [stats, setStats] = useState({ generated: 0, published: 0 });
+
     // Filter states
     const [searchDays, setSearchDays] = useState(tier === 'free' ? 1 : 3);
     const [activityType, setActivityType] = useState('all');
@@ -110,6 +113,25 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
             setSelectedModel('groq');   // Force Groq model
         }
     }, [tier]);
+
+    // Initial fetch of historical stats
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const token = await getToken();
+                const response = await axios.get(`${API_BASE}/api/post/bot-stats?user_id=${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (response.data) {
+                    setStats(response.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch bot stats", error);
+            }
+        };
+        fetchStats();
+    }, [userId, getToken]);
+
     const [suggestedActivities, setSuggestedActivities] = useState<Activity[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -209,6 +231,12 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
             setPosts(newPosts);
             setStep('generated');
 
+            // Update stats locally
+            setStats(prev => ({
+                ...prev,
+                generated: prev.generated + (response.data.generated_count || 0)
+            }));
+
             const successCount = response.data.generated_count || 0;
             const failedCount = response.data.failed_count || 0;
 
@@ -289,7 +317,8 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                 user_id: userId,
                 post_content: post.content,
                 image_url: post.image_url,
-                test_mode: testMode
+                test_mode: testMode,
+                post_id: post.id  // Pass the DB ID to update status
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -306,6 +335,11 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                 setPosts(prev => prev.map(p =>
                     p.id === postId ? { ...p, status: 'published' as const } : p
                 ));
+                // Update stats locally
+                setStats(prev => ({
+                    ...prev,
+                    published: prev.published + 1
+                }));
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -371,21 +405,21 @@ export function BotModePanel({ userId, postsRemaining = 10, tier = 'free', isLim
                 <span className="text-gray-400">→</span>
 
                 {/* Generated Count */}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${posts.length > 0
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${stats.generated > 0
                     ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                     : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                     }`}>
-                    <span className="font-bold">{posts.length}</span>
+                    <span className="font-bold">{stats.generated}</span>
                     <span>Generated</span>
                 </div>
                 <span className="text-gray-400">→</span>
 
                 {/* Published Count */}
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${posts.filter(p => p.status === 'published').length > 0
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${stats.published > 0
                     ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
                     : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
                     }`}>
-                    <span className="font-bold">{posts.filter(p => p.status === 'published').length}</span>
+                    <span className="font-bold">{stats.published}</span>
                     <span>Published</span>
                 </div>
             </div>

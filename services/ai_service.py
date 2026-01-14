@@ -124,7 +124,14 @@ TEMPLATES = {
 OBJECTIVE: Write a standard update about recent coding activity.
 
 STRUCTURE:
-1. Hook (1-2 sentences): Relatable question, observation, or story. NEVER start with "As a..."
+1. Hook (1-2 sentences): CRITICAL - Use ONE of these hook styles (pick randomly):
+   * Bold statement: "Most developers get this wrong..."
+   * Confession: "I'll admit it\u2014"
+   * Number-led: "After 100 commits...", "3 things I learned..."
+   * Question: "Ever had that moment when...?"
+   * Scene-setting: "It was 2am. My code wasn't working."
+   * Contradiction: "Everyone says X. I disagree."
+   NEVER start with: "As I", "As a", "I just", "Just", "Today I", "Recently", "So I"
 2. Body (3-5 sentences): Develop the idea with a specific example or experience
 3. Insight (1-2 sentences): What you learned and why it matters
 4. Call to Action (1 sentence): Engage your network
@@ -363,10 +370,13 @@ def get_prompt_for_style(style: str = "standard") -> str:
 
 WORD COUNT & FORMAT:
 - Target: 200-300 words (1,300-1,600 characters) - LinkedIn's optimal length
-- Multiple short paragraphs for readability
+- FORMATTING "BRO-ETRY" STYLE:
+  - 1-2 sentence paragraphs MAX.
+  - Double line break between every paragraph.
+  - NO big blocks of text.
 - Conversational, authentic, like talking to peers
 - Include 3-4 emojis naturally (🎨 🚀 💡 ✨ 🔥 💻 🎯 📱 ⚡ 🧠)
-- NO markdown formatting, NO code blocks, NO bullet points
+- NO markdown formatting (no **bold** or *italics*), NO code blocks, NO bullet points
 - Keep it punchy and engaging
 
 MANDATORY:
@@ -505,13 +515,26 @@ def build_user_prompt(context_data: dict) -> str:
         vibe = random.choice(push_vibes)
         angle = random.choice(push_angles)
         
+        total_commits = context_data.get('total_commits')
+        total_commits_instruction = ""
+        if total_commits and total_commits != 'unknown':
+            total_commits_instruction = f"""
+IMPORTANT: This repo has {total_commits} total commits. 
+You MUST weave this into the hook or body of the post naturally.
+Example hooks:
+- "After {total_commits} commits, I finally..."
+- "{total_commits} commits later, here's what I learned..."
+- "Commit #{total_commits} just hit the repo..."
+"""
+        
         return f"""
 Create a LinkedIn post about coding progress.
 
-FACTS ONLY (use these creatively):
-- Pushed {commits} commits to '{repo}'
+FACTS TO USE:
+- Just pushed {commits} commits to '{repo}'
+- Repository has {total_commits or 'many'} total commits
 - Project context: {description}
-
+{total_commits_instruction}
 YOUR CREATIVE DIRECTION: {angle}
 ENERGY: {vibe}
 

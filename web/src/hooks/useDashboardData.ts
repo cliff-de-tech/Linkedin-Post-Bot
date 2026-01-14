@@ -23,6 +23,8 @@ export interface DashboardStats {
     posts_generated: number;
     credits_remaining: number;
     posts_published: number;
+    posts_published_this_month: number;
+    posts_scheduled: number;
     posts_this_month: number;
     posts_this_week: number;
     posts_last_week: number;
@@ -162,6 +164,8 @@ export function useDashboardData({ userId, enabled = true }: UseDashboardDataOpt
         posts_generated: 0,
         credits_remaining: 50,
         posts_published: 0,
+        posts_published_this_month: 0,
+        posts_scheduled: 0,
         posts_this_month: 0,
         posts_this_week: 0,
         posts_last_week: 0,

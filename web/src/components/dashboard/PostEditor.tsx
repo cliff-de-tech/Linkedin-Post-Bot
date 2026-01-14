@@ -164,19 +164,47 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 Total Repo Commits
-                                <span className="ml-2 text-xs text-gray-500 font-normal">(like GitHub shows)</span>
+                                <span className="ml-2 text-xs text-gray-500 font-normal">(from GitHub)</span>
                             </label>
-                            <Input
-                                type="number"
-                                value={context.total_commits || ''}
-                                onChange={(e) => setContext({ ...context, total_commits: parseInt(e.target.value) || undefined })}
-                                min="1"
-                                placeholder="e.g. 106"
-                                aria-label="Total commits in repository"
-                            />
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                💡 Use this for posts like &quot;After 106 commits...&quot;
-                            </p>
+                            <div className="flex items-center px-4 py-3 bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800/50 dark:to-slate-700/30 rounded-xl border border-slate-200 dark:border-white/10">
+                                {context.total_commits ? (
+                                    <>
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/20">
+                                                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                                                    {context.total_commits.toLocaleString()}
+                                                </span>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">commits in repository</p>
+                                            </div>
+                                        </div>
+                                        <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs font-medium rounded-full">
+                                            ✓ Fetched
+                                        </span>
+                                    </>
+                                ) : (
+                                    <div className="flex items-center gap-3 flex-1 text-gray-500 dark:text-gray-400">
+                                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium">Not available</span>
+                                            <p className="text-xs">Select a GitHub activity to load commit count</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            {context.total_commits && (
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    💡 Use this for posts like &quot;After {context.total_commits.toLocaleString()} commits...&quot;
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Repository Name</label>

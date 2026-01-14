@@ -102,6 +102,38 @@ class PostRepository(BaseRepository):
                 stats['total'] += count
         
         return stats
+
+    async def get_bot_stats(self) -> Dict:
+        """
+        Get aggregated statistics for bot-generated posts.
+        
+        Returns:
+            Dictionary with generated and published counts
+        """
+        query = """
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM post_history
+            WHERE user_id = $1 AND post_type = 'bot'
+            GROUP BY status
+        """
+        result = await self.db.fetch_all(query, [self.user_id])
+        
+        stats = {
+            'generated': 0,
+            'published': 0
+        }
+        
+        if result:
+            for row in result:
+                status = row['status']
+                count = row['count']
+                stats['generated'] += count  # All bot posts count as generated
+                if status == 'published':
+                    stats['published'] += count
+        
+        return stats
     
     async def save_post(
         self,

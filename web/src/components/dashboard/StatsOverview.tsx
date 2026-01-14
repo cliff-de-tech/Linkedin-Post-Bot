@@ -5,6 +5,7 @@ interface StatsProps {
     stats: {
         posts_generated: number;
         posts_published: number;
+        posts_published_this_month?: number;
         growth_percentage?: number;  // Week-over-week growth
         posts_this_week?: number;
         posts_last_week?: number;
@@ -16,7 +17,10 @@ const StatsOverviewComponent: React.FC<StatsProps> = ({ stats, loading }) => {
     // Get growth data
     const growthPercent = stats?.growth_percentage ?? 0;
     const isPositive = growthPercent >= 0;
-    const hasNoHistory = (stats?.posts_last_week ?? 0) === 0 && (stats?.posts_this_week ?? 0) > 0;
+
+    // Check if we have history to compare against
+    const hasHistory = (stats?.posts_last_week ?? 0) > 0;
+    const isNewUser = !hasHistory && (stats?.posts_this_week ?? 0) > 0;
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8" role="region" aria-label="Dashboard statistics">
@@ -37,11 +41,11 @@ const StatsOverviewComponent: React.FC<StatsProps> = ({ stats, loading }) => {
                         <span className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.posts_generated || 0}</span>
 
                         {/* Dynamic Week-over-Week Percentage */}
-                        {hasNoHistory ? (
+                        {isNewUser ? (
                             <span className="text-sm text-blue-500 flex items-center" aria-label="New this week">
                                 ✨ New!
                             </span>
-                        ) : growthPercent !== 0 ? (
+                        ) : hasHistory ? (
                             <span
                                 className={`text-sm flex items-center ${isPositive ? 'text-green-500' : 'text-red-500'}`}
                                 aria-label={`${Math.abs(growthPercent)} percent ${isPositive ? 'increase' : 'decrease'}`}
@@ -54,10 +58,11 @@ const StatsOverviewComponent: React.FC<StatsProps> = ({ stats, loading }) => {
                                     )}
                                 </svg>
                                 {isPositive ? '+' : ''}{growthPercent}%
+                                <span className="ml-1 text-gray-400 text-xs font-normal">vs last week</span>
                             </span>
                         ) : (
                             <span className="text-sm text-gray-400 flex items-center">
-                                — same as last week
+                                — no history yet
                             </span>
                         )}
                     </div>
@@ -79,7 +84,12 @@ const StatsOverviewComponent: React.FC<StatsProps> = ({ stats, loading }) => {
                 ) : (
                     <div className="flex items-baseline gap-2" aria-labelledby="published-label">
                         <span className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.posts_published || 0}</span>
-                        <span className="text-sm text-gray-500">this month</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium">
+                                +{stats?.posts_published_this_month || 0}
+                            </span>
+                            <span className="text-sm text-gray-500">this month</span>
+                        </div>
                     </div>
                 )}
             </div>

@@ -4,6 +4,7 @@ interface AnalyticsData {
     totalPosts: number;
     publishedPosts: number;
     draftPosts: number;
+    postsScheduled: number;
     postsThisMonth: number;
     postsThisWeek: number;
     avgEngagement?: number;
@@ -27,6 +28,7 @@ const Analytics: React.FC<AnalyticsProps> = ({ data, loading }) => {
         totalPosts: 0,
         publishedPosts: 0,
         draftPosts: 0,
+        postsScheduled: 0,
         postsThisMonth: 0,
         postsThisWeek: 0,
         avgEngagement: 0,
@@ -79,12 +81,12 @@ const Analytics: React.FC<AnalyticsProps> = ({ data, loading }) => {
                     <div className="text-sm text-yellow-600/70 dark:text-yellow-400/70">Drafts</div>
                 </div>
 
-                {/* This Month */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-500/10 dark:to-purple-600/10 rounded-xl p-4">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        {analytics.postsThisMonth}
+                {/* Scheduled */}
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-500/10 dark:to-orange-600/10 rounded-xl p-4">
+                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                        {analytics.postsScheduled}
                     </div>
-                    <div className="text-sm text-purple-600/70 dark:text-purple-400/70">This Month</div>
+                    <div className="text-sm text-orange-600/70 dark:text-orange-400/70">Scheduled</div>
                 </div>
             </div>
 

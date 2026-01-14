@@ -227,30 +227,62 @@ async def get_stats(user_id: str):
         from services.db import get_database
         db = get_database()
         
-        # Count posts for this user
-        posts_result = await db.fetch_one(
-            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1",
+        # Count posts by status
+        counts_result = await db.fetch_all(
+            "SELECT status, COUNT(*) as count FROM posts WHERE user_id = $1 GROUP BY status",
             [user_id]
         )
-        posts_count = posts_result['count'] if posts_result else 0
+        
+        counts = {row['status']: row['count'] for row in counts_result}
+        posts_published = counts.get('published', 0)
+        draft_posts = counts.get('draft', 0)
+        posts_count = sum(counts.values())
+
+        # Count scheduled posts
+        scheduled_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM scheduled_posts WHERE user_id = $1 AND status = 'pending'",
+            [user_id]
+        )
+        scheduled_posts = scheduled_result['count'] if scheduled_result else 0
         
         # Count posts this month
         import time
         now = int(time.time())
         month_ago = now - (30 * 24 * 60 * 60)
         week_ago = now - (7 * 24 * 60 * 60)
+        two_weeks_ago = now - (14 * 24 * 60 * 60)
         
+        # Monthly published count (for correct "this month" label)
+        monthly_published_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND status = 'published' AND created_at > $2",
+            [user_id, month_ago]
+        )
+        published_this_month = monthly_published_result['count'] if monthly_published_result else 0
+
         monthly_result = await db.fetch_one(
             "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND created_at > $2",
             [user_id, month_ago]
         )
         posts_this_month = monthly_result['count'] if monthly_result else 0
         
+        # Weekly growth calculation
         weekly_result = await db.fetch_one(
             "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND created_at > $2",
             [user_id, week_ago]
         )
         posts_this_week = weekly_result['count'] if weekly_result else 0
+
+        last_week_result = await db.fetch_one(
+            "SELECT COUNT(*) as count FROM posts WHERE user_id = $1 AND created_at BETWEEN $2 AND $3",
+            [user_id, two_weeks_ago, week_ago]
+        )
+        posts_last_week = last_week_result['count'] if last_week_result else 0
+
+        # Calculate growth percentage
+        if posts_last_week > 0:
+            growth_percentage = int(((posts_this_week - posts_last_week) / posts_last_week) * 100)
+        else:
+            growth_percentage = 100 if posts_this_week > 0 else 0
         
         # Get usage/credits from user settings
         credits_remaining = 10  # Default for free tier
@@ -261,13 +293,15 @@ async def get_stats(user_id: str):
         
         return {
             "posts_generated": posts_count,
-            "posts_published": posts_count,
+            "posts_published": posts_published,
+            "posts_published_this_month": published_this_month, # New field
+            "posts_scheduled": scheduled_posts,
             "posts_this_month": posts_this_month,
             "posts_this_week": posts_this_week,
-            "posts_last_week": 0,  # TODO: calculate if needed
-            "growth_percentage": 0,  # TODO: calculate week-over-week
+            "posts_last_week": posts_last_week,
+            "growth_percentage": growth_percentage,
             "credits_remaining": credits_remaining,
-            "draft_posts": 0
+            "draft_posts": draft_posts
         }
     except Exception as e:
         logger.error(f"Error getting stats for {user_id}: {e}")
@@ -275,6 +309,7 @@ async def get_stats(user_id: str):
         return {
             "posts_generated": 0,
             "posts_published": 0,
+            "posts_scheduled": 0,
             "posts_this_month": 0,
             "posts_this_week": 0,
             "posts_last_week": 0,
@@ -649,6 +684,7 @@ class PublishFullRequest(BaseModel):
     post_content: str
     image_url: Optional[str] = None
     test_mode: Optional[bool] = False
+    post_id: Optional[str] = None
 
 
 @router.post("/publish/full")
@@ -657,7 +693,15 @@ async def publish_full(req: PublishFullRequest):
     try:
         logger.info(f"Publish request: user_id={req.user_id}, test_mode={req.test_mode}")
         
+        # Import persistence tools
+        from services.db import get_database
+        from repositories.posts import PostRepository
+        db = get_database()
+        repo = PostRepository(db, req.user_id)
+        
         if req.test_mode:
+            # If we have a draft ID, keep it as draft but maybe log a test event? 
+            # For now just return success.
             return {"success": True, "test_mode": True, "message": "Test mode - post would be published"}
         
         # Import token function directly to avoid module-level import issues
@@ -681,7 +725,28 @@ async def publish_full(req: PublishFullRequest):
                 post_content=req.post_content,
                 image_url=req.image_url
             )
-            return {"success": True, "post_id": result.get("id")}
+            
+            linkedin_post_id = result.get("id")
+            
+            # Persist status change
+            if req.post_id:
+                try:
+                    await repo.update_status(int(req.post_id), 'published', linkedin_post_id)
+                except Exception as e:
+                    logger.error(f"Failed to update post status: {e}")
+            else:
+                # Fallback: Create new published record if no ID provided
+                try:
+                    await repo.save_post(
+                        post_content=req.post_content,
+                        post_type='bot',
+                        status='published',
+                        linkedin_post_id=linkedin_post_id
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to save published post: {e}")
+
+            return {"success": True, "post_id": linkedin_post_id}
         except Exception as e:
             logger.error(f"LinkedIn post error: {e}")
             return {"success": False, "error": str(e)}

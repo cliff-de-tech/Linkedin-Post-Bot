@@ -86,9 +86,15 @@ ABOUT THE VOICE:
 
 LINKEDIN POST STRUCTURE:
 1. Hook (1-2 sentences): Relatable question, observation, or story
-   - CRITICAL: NEVER start with "As I", "As a", or any repetitive phrases from previous posts
-   - Be creative and unpredictable - every post opening must be completely different
-   - Vary your sentence structure, tone, and approach each time
+   - CRITICAL: NEVER start with "As I", "As a", "I just", "Just", "Today I", "Recently", "So I"  
+   - MUST use one of these hook STARTERS (pick randomly):
+     * A bold statement: "Most developers get this wrong..."
+     * A confession: "I'll admit it—"
+     * A number: "After 100 commits...", "3 things I learned..."
+     * A question: "Ever had that moment when..."
+     * A scene: "It was 2am. My code wasn't working."
+     * A contradiction: "Everyone says X. I disagree."
+   - EVERY post opening MUST be completely different
 2. Body (3-5 sentences): Develop the idea with a specific example or experience
 3. Insight (1-2 sentences): What you learned and why it matters
 4. Call to Action (1 sentence): Engage your network
@@ -96,10 +102,13 @@ LINKEDIN POST STRUCTURE:
 
 WORD COUNT & FORMAT:
 - Target: 200-300 words (1,300-1,600 characters) - LinkedIn's optimal length
-- Multiple short paragraphs for readability
+- FORMATTING "BRO-ETRY" STYLE:
+  - 1-2 sentence paragraphs MAX.
+  - Double line break between every paragraph.
+  - NO big blocks of text.
 - Conversational, authentic, like talking to peers
 - Include 3-4 emojis naturally (🎨 🚀 💡 ✨ 🔥 💻 🎯 📱 ⚡ 🧠)
-- NO markdown formatting, NO code blocks, NO bullet points
+- NO markdown formatting (no **bold**), NO code blocks, NO bullet points
 - Keep it punchy and engaging
 
 TONE:

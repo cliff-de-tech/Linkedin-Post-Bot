@@ -372,12 +372,16 @@ def get_repo_details(repo_full_name: str, token: str = None):
                 )
                 if contrib_response.status_code == 200:
                     contributors = contrib_response.json()
-                    # Sum all contributor commits
-                    total_commits = sum(c.get('contributions', 0) for c in contributors)
-                    logger.info(f"Got {total_commits} total commits for {repo_full_name} from contributors")
+                    # Ensure it's a list (API might return dict on error)
+                    if isinstance(contributors, list) and len(contributors) > 0:
+                        # Sum all contributor commits
+                        total_commits = sum(c.get('contributions', 0) for c in contributors)
+                        logger.info(f"Got {total_commits} total commits for {repo_full_name} from contributors")
             except Exception as e:
                 logger.warning(f"Could not get contributor stats for {repo_full_name}: {e}")
-                # Fallback: estimate from commit count header
+            
+            # Fallback: estimate from commit count header if still 0
+            if total_commits == 0:
                 try:
                     # Get first page of commits to check total via Link header
                     commits_resp = requests.get(
@@ -395,6 +399,28 @@ def get_repo_details(repo_full_name: str, token: str = None):
                             if match:
                                 total_commits = int(match.group(1))
                                 logger.info(f"Estimated {total_commits} commits for {repo_full_name} from pagination")
+                        else:
+                            # No pagination = single page = count the commits on this page
+                            # Actually, with per_page=1, if there's at least 1 commit, there's at least 1
+                            commits_data = commits_resp.json()
+                            if isinstance(commits_data, list) and len(commits_data) > 0:
+                                # Try to get actual count by fetching with higher per_page
+                                commits_resp2 = requests.get(
+                                    f"{GITHUB_API}/repos/{repo_full_name}/commits?per_page=100",
+                                    headers=headers,
+                                    timeout=10
+                                )
+                                if commits_resp2.status_code == 200:
+                                    all_commits = commits_resp2.json()
+                                    if isinstance(all_commits, list):
+                                        total_commits = len(all_commits)
+                                        # Check if there are more pages
+                                        link_header2 = commits_resp2.headers.get('Link', '')
+                                        if 'last' in link_header2:
+                                            match2 = re.search(r'page=(\d+)>; rel="last"', link_header2)
+                                            if match2:
+                                                total_commits = int(match2.group(1)) * 100  # Rough estimate
+                                        logger.info(f"Counted {total_commits} commits for {repo_full_name} from commit list")
                 except Exception as e2:
                     logger.warning(f"Commit count fallback failed: {e2}")
             

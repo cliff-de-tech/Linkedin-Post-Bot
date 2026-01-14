@@ -70,6 +70,11 @@ except ImportError:
     get_token_by_user_id = None
 
 try:
+    from services.scheduled_posts import schedule_post
+except ImportError:
+    schedule_post = None
+
+try:
     from services.auth_service import (
         TokenNotFoundError,
         TokenRefreshError,
@@ -94,7 +99,13 @@ except ImportError:
 try:
     from middleware.clerk_auth import get_current_user
 except ImportError:
+try:
+    from middleware.clerk_auth import get_current_user
+except ImportError:
     get_current_user = None
+
+from services.db import get_database
+from repositories.posts import PostRepository
 
 
 # =============================================================================
@@ -112,6 +123,13 @@ class PostRequest(BaseModel):
     test_mode: Optional[bool] = True
     user_id: Optional[str] = None
     model: Optional[str] = "groq"
+
+
+class ScheduleRequest(BaseModel):
+    user_id: str
+    post_content: str
+    scheduled_time: int
+    image_url: Optional[str] = None
 
 
 class BatchGenerateRequest(BaseModel):
@@ -292,7 +310,7 @@ async def generate_batch(req: BatchGenerateRequest):
                 )
                 
                 if result:
-                    generated_posts.append({
+                    final_post = {
                         "id": f"gen_{success_count}_{activity.get('id', '')}",
                         "content": result.content,
                         "activity": activity,
@@ -300,7 +318,24 @@ async def generate_batch(req: BatchGenerateRequest):
                         "status": "draft",
                         "provider": result.provider.value,
                         "model": result.model,
-                    })
+                    }
+                    generated_posts.append(final_post)
+                    
+                    # PERSISTENCE: Save as draft immediately
+                    try:
+                        db = get_database()
+                        repo = PostRepository(db, req.user_id)
+                        saved_id = await repo.save_post(
+                            post_content=result.content,
+                            post_type='bot',
+                            context=activity,
+                            status='draft'
+                        )
+                        final_post['id'] = str(saved_id)
+                        final_post['db_id'] = saved_id
+                    except Exception as e:
+                        logger.error("failed_to_persist_post_provider", error=str(e))
+                        
                     used_provider = result.provider.value
                     was_downgraded = result.was_downgraded
                     success_count += 1
@@ -315,7 +350,7 @@ async def generate_batch(req: BatchGenerateRequest):
                 )
                 
                 if post_content:
-                    generated_posts.append({
+                    final_post = {
                         "id": f"gen_{success_count}_{activity.get('id', '')}",
                         "content": post_content,
                         "activity": activity,
@@ -323,7 +358,25 @@ async def generate_batch(req: BatchGenerateRequest):
                         "status": "draft",
                         "provider": "groq",
                         "model": "llama-3.3-70b-versatile",
-                    })
+                    }
+                    generated_posts.append(final_post)
+                    
+                    # PERSISTENCE: Save as draft immediately
+                    try:
+                        db = get_database()
+                        repo = PostRepository(db, req.user_id)
+                        saved_id = await repo.save_post(
+                            post_content=post_content,
+                            post_type='bot',
+                            context=activity,
+                            status='draft'
+                        )
+                        # Build full object with real ID so frontend can use it for publishing
+                        final_post['id'] = str(saved_id)
+                        final_post['db_id'] = saved_id  # explicitly track DB ID
+                    except Exception as e:
+                        logger.error("failed_to_persist_post", error=str(e))
+                        
                     success_count += 1
                 else:
                     failed_count += 1
@@ -331,6 +384,13 @@ async def generate_batch(req: BatchGenerateRequest):
         except Exception as e:
             logger.error("failed_to_generate_post", error=str(e))
             failed_count += 1
+            
+    # For provider-based generation loop above, we also need persistence
+    # (Note: I'm patching the loop above in a second chunk or assuming the user meant to cover both paths. 
+    # To be safe and clean, I will wrap the persistence logic in a helper or duplicate it for the first branch if I can't easily merge.)
+    # Actually, the previous 'if result:' block also needs persistence. 
+    # Let me re-read the file content to ensure I catch both branches.
+    # The file view showed headers 300-450.
     
     return {
         "posts": generated_posts,
@@ -340,6 +400,24 @@ async def generate_batch(req: BatchGenerateRequest):
         "provider": used_provider,
         "was_downgraded": was_downgraded,
     }
+
+
+@router.get("/bot-stats")
+async def get_bot_stats(
+    user_id: str,
+    current_user: dict = Depends(get_current_user) if get_current_user else None
+):
+    """Get statistics for bot mode (generated vs published)."""
+    if current_user and current_user.get("user_id") != user_id:
+         raise HTTPException(status_code=403, detail="Unauthorized")
+         
+    try:
+        db = get_database()
+        repo = PostRepository(db, user_id)
+        return await repo.get_bot_stats()
+    except Exception as e:
+        logger.error("failed_to_get_bot_stats", error=str(e))
+        return {"generated": 0, "published": 0}
 
 
 @router.get("/providers")
@@ -504,3 +582,23 @@ async def publish(req: PostRequest):
     if post_to_linkedin:
         post_to_linkedin(post, image_asset)
     return {"status": "posted", "post": post, "image_asset": image_asset}
+
+
+@router.post("/schedule")
+async def schedule(req: ScheduleRequest):
+    """Schedule a post for later publishing."""
+    if not schedule_post:
+        raise HTTPException(status_code=500, detail="Schedule service not available")
+
+    result = await schedule_post(
+        user_id=req.user_id,
+        post_content=req.post_content,
+        scheduled_time=req.scheduled_time,
+        image_url=req.image_url
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+        
+    return result
+

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { generatePreview, publishPost } from '@/lib/api';
+import { generatePreview, publishPost, schedulePost } from '@/lib/api';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
@@ -550,6 +550,7 @@ export default function Dashboard() {
                 totalPosts: stats.posts_generated,
                 publishedPosts: stats.posts_published,
                 draftPosts: stats.draft_posts,
+                postsScheduled: stats.posts_scheduled,
                 postsThisMonth: stats.posts_this_month,
                 postsThisWeek: Math.floor(stats.posts_this_month / 4),
                 avgEngagement: 0,
@@ -577,23 +578,35 @@ export default function Dashboard() {
           isOpen={showScheduleModal}
           onClose={() => setShowScheduleModal(false)}
           postContent={preview}
-          onSchedule={(date, time) => {
-            showToast.success(`📅 Post scheduled for ${date.toLocaleDateString()} at ${time}`);
-            setShowScheduleModal(false);
+          onSchedule={async (date, time) => {
+            try {
+              const timestamp = Math.floor(date.getTime() / 1000);
+              const token = await getToken();
+
+              await schedulePost({
+                user_id: userId,
+                post_content: preview,
+                scheduled_time: timestamp,
+                image_url: manualSelectedImage || undefined
+              }, token || undefined);
+
+              showToast.success(`📅 Post scheduled for ${date.toLocaleDateString()} at ${time}`);
+              setShowScheduleModal(false);
+
+              // Refresh data
+              refetchStats();
+              refetchPosts();
+              loadScheduledPosts(userId);
+            } catch (error: any) {
+              const message = error.response?.data?.detail || error.message || 'Failed to schedule post';
+              showToast.error(message);
+              // Throw so modal stays open on error
+              throw error;
+            }
           }}
         />
 
-        <PostHistory
-          posts={postHistory}
-          isOpen={showHistory}
-          onClose={() => setShowHistory(false)}
-          onSelect={(content) => {
-            setPreview(content);
-            setShowHistory(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          formatDate={formatDate}
-        />
+
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* GitHub Activity Feed */}
