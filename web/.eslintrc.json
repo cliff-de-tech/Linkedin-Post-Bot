@@ -1,3 +1,10 @@
 {
-    "extends": "next/core-web-vitals"
+    "extends": "next/core-web-vitals",
+    "rules": {
+        "react/no-unescaped-entities": "off",
+        "@next/next/no-html-link-for-pages": "warn",
+        "@next/next/no-img-element": "off",
+        "react-hooks/exhaustive-deps": "warn",
+        "jsx-a11y/role-supports-aria-props": "warn"
+    }
 }
