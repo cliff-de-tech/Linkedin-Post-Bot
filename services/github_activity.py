@@ -332,7 +332,13 @@ def parse_event(event):
 
 
 def get_repo_details(repo_full_name: str, token: str = None):
-    """Get repository details"""
+    """Get repository details including total commit count"""
+    # Check cache first
+    cache_key = f"repo_details:{repo_full_name}"
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+    
     try:
         headers = {
             'Accept': 'application/vnd.github.v3+json'
@@ -353,13 +359,60 @@ def get_repo_details(repo_full_name: str, token: str = None):
         
         if response.status_code == 200:
             data = response.json()
-            return {
+            
+            # Get total commit count using the contributors stats endpoint
+            # This is more accurate than paginating through all commits
+            total_commits = 0
+            try:
+                # Use the participation stats which gives commit counts
+                contrib_response = requests.get(
+                    f"{GITHUB_API}/repos/{repo_full_name}/contributors?per_page=100&anon=true",
+                    headers=headers,
+                    timeout=10
+                )
+                if contrib_response.status_code == 200:
+                    contributors = contrib_response.json()
+                    # Sum all contributor commits
+                    total_commits = sum(c.get('contributions', 0) for c in contributors)
+                    logger.info(f"Got {total_commits} total commits for {repo_full_name} from contributors")
+            except Exception as e:
+                logger.warning(f"Could not get contributor stats for {repo_full_name}: {e}")
+                # Fallback: estimate from commit count header
+                try:
+                    # Get first page of commits to check total via Link header
+                    commits_resp = requests.get(
+                        f"{GITHUB_API}/repos/{repo_full_name}/commits?per_page=1",
+                        headers=headers,
+                        timeout=5
+                    )
+                    if commits_resp.status_code == 200:
+                        # Parse Link header to get total pages
+                        link_header = commits_resp.headers.get('Link', '')
+                        if 'last' in link_header:
+                            # Extract last page number from Link header
+                            import re
+                            match = re.search(r'page=(\d+)>; rel="last"', link_header)
+                            if match:
+                                total_commits = int(match.group(1))
+                                logger.info(f"Estimated {total_commits} commits for {repo_full_name} from pagination")
+                except Exception as e2:
+                    logger.warning(f"Commit count fallback failed: {e2}")
+            
+            result = {
                 'name': data.get('name'),
+                'full_name': data.get('full_name'),
                 'description': data.get('description'),
                 'stars': data.get('stargazers_count', 0),
+                'forks': data.get('forks_count', 0),
                 'language': data.get('language'),
-                'url': data.get('html_url')
+                'url': data.get('html_url'),
+                'total_commits': total_commits,
+                'default_branch': data.get('default_branch', 'main')
             }
+            
+            # Cache the result
+            _set_cached(cache_key, result, ttl=600)  # Cache for 10 minutes
+            return result
     except Exception as e:
         logger.error(f"Error fetching repo details: {e}")
     

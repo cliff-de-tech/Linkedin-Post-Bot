@@ -99,6 +99,7 @@ export interface UserStats {
 export interface PostContext {
     type: string;
     commits?: number;
+    total_commits?: number;  // Total commits in the repo (from GitHub API)
     repo?: string;
     full_repo?: string;
     date?: string;

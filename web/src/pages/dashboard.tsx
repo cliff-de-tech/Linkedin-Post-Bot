@@ -309,9 +309,31 @@ export default function Dashboard() {
     }
   };
 
-  const handleActivityClick = (activity: GitHubActivity) => {
-    setContext(activity.context as PostContext);
+  const handleActivityClick = async (activity: GitHubActivity) => {
+    const activityContext = activity.context as PostContext;
+    setContext(activityContext);
     showToast.success(`📝 Loaded context from: ${activity.title}`);
+
+    // Fetch total repo commits if we have the full_repo
+    if (activityContext.full_repo) {
+      try {
+        const repoPath = activityContext.full_repo;
+        const [owner, repo] = repoPath.split('/');
+        if (owner && repo) {
+          const response = await axios.get(`${API_BASE}/api/github/repo/${owner}/${repo}`);
+          if (response.data && response.data.total_commits) {
+            setContext(prev => ({
+              ...prev,
+              total_commits: response.data.total_commits
+            }));
+            showToast.success(`📊 Repo has ${response.data.total_commits} total commits`);
+          }
+        }
+      } catch (error) {
+        console.log('Could not fetch repo total commits:', error);
+        // Not critical, user can still manually enter
+      }
+    }
   };
 
   const handleTemplateClick = (template: Template) => {

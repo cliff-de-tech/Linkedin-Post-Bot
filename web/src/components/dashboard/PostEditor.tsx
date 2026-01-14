@@ -148,15 +148,35 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                 {context.type === 'push' && (
                     <>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Number of Commits</label>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Commits in this Push
+                                <span className="ml-2 text-xs text-gray-500 font-normal">(editable)</span>
+                            </label>
                             <Input
                                 type="number"
                                 value={context.commits}
                                 onChange={(e) => setContext({ ...context, commits: parseInt(e.target.value) })}
                                 min="1"
                                 placeholder="1"
-                                aria-label="Number of commits"
+                                aria-label="Number of commits in this push"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                Total Repo Commits
+                                <span className="ml-2 text-xs text-gray-500 font-normal">(like GitHub shows)</span>
+                            </label>
+                            <Input
+                                type="number"
+                                value={context.total_commits || ''}
+                                onChange={(e) => setContext({ ...context, total_commits: parseInt(e.target.value) || undefined })}
+                                min="1"
+                                placeholder="e.g. 106"
+                                aria-label="Total commits in repository"
+                            />
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                💡 Use this for posts like &quot;After 106 commits...&quot;
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Repository Name</label>
@@ -205,10 +225,10 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                                     onClick={() => handleModelChange(model.value)}
                                     disabled={loading}
                                     className={`relative p-4 rounded-xl border-2 transition-all text-left ${isSelected
-                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
-                                            : isLocked
-                                                ? 'border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 opacity-60 cursor-not-allowed'
-                                                : 'border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-500/20'
+                                        : isLocked
+                                            ? 'border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 opacity-60 cursor-not-allowed'
+                                            : 'border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-blue-300 dark:hover:border-blue-500/50 hover:bg-blue-50/50 dark:hover:bg-blue-900/10'
                                         }`}
                                 >
                                     {/* Lock icon for pro models on free tier */}
