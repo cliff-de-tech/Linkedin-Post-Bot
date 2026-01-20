@@ -34,6 +34,7 @@ stripe==14.1.0
 # AI Providers (Multi-Model Support)
 openai==2.11.0
 anthropic==0.75.0
+mistralai==1.2.5
 
 # Production server
 gunicorn==21.2.0

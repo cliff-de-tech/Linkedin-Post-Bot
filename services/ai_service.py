@@ -45,6 +45,13 @@ except ImportError:
     Anthropic = None  # type: ignore
     ANTHROPIC_AVAILABLE = False
 
+try:
+    from mistralai import Mistral
+    MISTRAL_AVAILABLE = True
+except ImportError:
+    Mistral = None  # type: ignore
+    MISTRAL_AVAILABLE = False
+
 logger = structlog.get_logger(__name__)
 
 # =============================================================================
@@ -62,12 +69,14 @@ except ImportError:
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
 ANTHROPIC_API_KEY = os.getenv('ANTHROPIC_API_KEY', '')
+MISTRAL_API_KEY = os.getenv('MISTRAL_API_KEY', '')
 GITHUB_USERNAME = os.getenv('GITHUB_USERNAME', 'cliff-de-tech')
 
 # Model configurations
 GROQ_MODEL = "llama-3.3-70b-versatile"
 OPENAI_MODEL = "gpt-4o"
 ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
+MISTRAL_MODEL = "mistral-large-latest"
 
 
 # =============================================================================
@@ -77,6 +86,7 @@ ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022"
 class ModelProvider(str, Enum):
     """Available AI model providers."""
     GROQ = "groq"
+    MISTRAL = "mistral"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
 
@@ -90,9 +100,9 @@ class SubscriptionTier(str, Enum):
 
 # Providers available to each tier
 TIER_ALLOWED_PROVIDERS = {
-    SubscriptionTier.FREE: [ModelProvider.GROQ],
-    SubscriptionTier.PRO: [ModelProvider.GROQ, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
-    SubscriptionTier.ENTERPRISE: [ModelProvider.GROQ, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
+    SubscriptionTier.FREE: [ModelProvider.GROQ, ModelProvider.MISTRAL],
+    SubscriptionTier.PRO: [ModelProvider.GROQ, ModelProvider.MISTRAL, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
+    SubscriptionTier.ENTERPRISE: [ModelProvider.GROQ, ModelProvider.MISTRAL, ModelProvider.OPENAI, ModelProvider.ANTHROPIC],
 }
 
 
@@ -724,6 +734,45 @@ def _generate_with_anthropic(
         return None
 
 
+def _generate_with_mistral(
+    system_prompt: str,
+    user_prompt: str,
+    api_key: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Generate post using Mistral AI.
+    
+    This is a FREE tier provider - good quality and free.
+    """
+    if not MISTRAL_AVAILABLE:
+        logger.error("Mistral package not installed")
+        return None
+    
+    key = api_key or MISTRAL_API_KEY
+    if not key:
+        logger.warning("No Mistral API key available")
+        return None
+    
+    try:
+        client = Mistral(api_key=key)
+        
+        response = client.chat.complete(
+            model=MISTRAL_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.95,
+            max_tokens=600,
+        )
+        
+        return response.choices[0].message.content
+        
+    except Exception as e:
+        logger.error("mistral_generation_failed", error=str(e))
+        return None
+
+
 # =============================================================================
 # TIER ENFORCEMENT & ROUTING
 # =============================================================================
@@ -796,6 +845,7 @@ async def generate_linkedin_post(
     groq_api_key: Optional[str] = None,
     openai_api_key: Optional[str] = None,
     anthropic_api_key: Optional[str] = None,
+    mistral_api_key: Optional[str] = None,
     persona_context: Optional[str] = None,
 ) -> Optional[GenerationResult]:
     """
@@ -856,6 +906,10 @@ async def generate_linkedin_post(
     if actual_provider == ModelProvider.GROQ:
         content = _generate_with_groq(system_prompt, user_prompt, groq_api_key)
         model_used = GROQ_MODEL
+        
+    elif actual_provider == ModelProvider.MISTRAL:
+        content = _generate_with_mistral(system_prompt, user_prompt, mistral_api_key)
+        model_used = MISTRAL_MODEL
         
     elif actual_provider == ModelProvider.OPENAI:
         content = _generate_with_openai(system_prompt, user_prompt, openai_api_key)
