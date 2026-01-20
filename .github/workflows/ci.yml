@@ -34,12 +34,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run backend tests
         run: |
           python -m pytest tests/ -v --tb=short
-        continue-on-error: true
         env:
           # Provide minimal env vars for tests
           LINKEDIN_CLIENT_ID: test_client_id
@@ -109,7 +108,6 @@ jobs:
 
       - name: Build application
         run: npm run build
-        continue-on-error: true
         env:
           # Required for build but not for functionality
           NEXT_PUBLIC_API_URL: https://api.example.com
@@ -139,14 +137,11 @@ jobs:
       - name: Check formatting with Black
         run: |
           black --check --diff backend/ services/ || echo "::warning::Black formatting issues found"
-        continue-on-error: true
 
       - name: Check imports with isort
         run: |
           isort --check-only --diff backend/ services/ || echo "::warning::Import ordering issues found"
-        continue-on-error: true
 
       - name: Lint with flake8
         run: |
           flake8 backend/ services/ --max-line-length=120 --ignore=E501,W503 --count --show-source --statistics || echo "::warning::Flake8 issues found"
-        continue-on-error: true

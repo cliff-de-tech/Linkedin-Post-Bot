@@ -667,12 +667,13 @@ cd linkedin-post-bot
 
 # Backend setup
 pip install -r requirements.txt
+pip install -r requirements-dev.txt  # For running tests
 cp .env.example .env  # Configure your API keys
 
 # Frontend setup
 cd web
 npm install
-cp .env.local.example .env.local  # Configure Clerk keys
+cp .env.local.example .env.local  # Configure Clerk keys & Redirect URI
 ```
 
 ### Running Locally (Development)

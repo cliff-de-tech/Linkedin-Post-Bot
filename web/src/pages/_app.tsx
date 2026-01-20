@@ -3,8 +3,9 @@ import type { AppProps } from 'next/app'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { Toaster } from 'react-hot-toast'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import { showToast } from '@/lib/toast'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import SkipToContent from '@/components/SkipToContent'
 import AnimatedBackground from '@/components/ui/AnimatedBackground'
@@ -26,6 +27,15 @@ export default function App({ Component, pageProps }: AppProps) {
   // Initialize QueryClient with useState to prevent recreation on re-renders
   // This ensures the cache persists across component updates
   const [queryClient] = useState(() => new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error: any) => {
+        // Only show toast if it's NOT an axios error (those are handled by interceptors in lib/api.ts)
+        if (!error.response) {
+          console.error('Query Error:', error);
+          showToast.error('An unexpected data error occurred. Please try refreshing.');
+        }
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 1000 * 60 * 5, // 5 minutes

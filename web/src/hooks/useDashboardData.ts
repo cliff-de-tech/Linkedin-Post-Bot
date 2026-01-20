@@ -9,40 +9,9 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@clerk/nextjs';
-import axios from 'axios';
-import type { GitHubActivity, Template, PostContext } from '@/types/dashboard';
+import { api } from '@/lib/api';
+import type { GitHubActivity, Template, PostContext, DashboardStats, UsageData } from '@/types/dashboard';
 import type { Post } from '@/components/dashboard/PostHistory';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface DashboardStats {
-    posts_generated: number;
-    credits_remaining: number;
-    posts_published: number;
-    posts_published_this_month: number;
-    posts_scheduled: number;
-    posts_this_month: number;
-    posts_this_week: number;
-    posts_last_week: number;
-    growth_percentage: number;
-    draft_posts: number;
-}
-
-export interface UsageData {
-    tier: string;
-    posts_today: number;
-    posts_limit: number;
-    posts_remaining: number;
-    scheduled_count: number;
-    scheduled_limit: number;
-    scheduled_remaining: number;
-    resets_in_seconds: number;
-    resets_at: string | null;
-}
 
 // ============================================================================
 // FETCH FUNCTIONS
@@ -50,7 +19,7 @@ export interface UsageData {
 
 async function fetchStats(userId: string, getToken: () => Promise<string | null>): Promise<DashboardStats> {
     const token = await getToken();
-    const response = await axios.get(`${API_BASE}/api/stats/${userId}`, {
+    const response = await api.get(`/api/stats/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
@@ -58,7 +27,7 @@ async function fetchStats(userId: string, getToken: () => Promise<string | null>
 
 async function fetchPostHistory(userId: string, getToken: () => Promise<string | null>, limit = 10): Promise<Post[]> {
     const token = await getToken();
-    const response = await axios.get(`${API_BASE}/api/posts/${userId}?limit=${limit}`, {
+    const response = await api.get(`/api/posts/${userId}?limit=${limit}`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     return response.data.posts || [];
@@ -67,7 +36,7 @@ async function fetchPostHistory(userId: string, getToken: () => Promise<string |
 async function fetchUsage(userId: string, getToken: () => Promise<string | null>): Promise<UsageData | null> {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const token = await getToken();
-    const response = await axios.get(`${API_BASE}/api/usage/${userId}`, {
+    const response = await api.get(`/api/usage/${userId}`, {
         params: { timezone },
         headers: { Authorization: `Bearer ${token}` }
     });
@@ -76,19 +45,19 @@ async function fetchUsage(userId: string, getToken: () => Promise<string | null>
 }
 
 async function fetchTemplates(): Promise<Template[]> {
-    const response = await axios.get(`${API_BASE}/api/templates`);
+    const response = await api.get('/api/templates');
     return response.data.templates || [];
 }
 
 async function fetchGitHubActivity(username: string): Promise<GitHubActivity[]> {
     if (!username) return [];
-    const response = await axios.get(`${API_BASE}/api/github/activity/${username}`);
+    const response = await api.get(`/api/github/activity/${username}`);
     return response.data.activities || [];
 }
 
 async function fetchUserSettings(userId: string, getToken: () => Promise<string | null>): Promise<{ github_username?: string }> {
     const token = await getToken();
-    const response = await axios.get(`${API_BASE}/api/settings/${userId}`, {
+    const response = await api.get(`/api/settings/${userId}`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     return response.data || {};

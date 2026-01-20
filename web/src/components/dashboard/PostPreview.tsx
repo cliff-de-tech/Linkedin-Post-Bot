@@ -5,21 +5,31 @@ import { showToast } from '@/lib/toast';
 interface PostPreviewProps {
     preview: string;
     imageUrl?: string | null;
-    onEdit?: () => void;
+    onEdit?: (newContent?: string) => void;
+    isEditing?: boolean;
+    onToggleEditing?: (editing: boolean) => void;
 }
 
 /**
  * PostPreview - Shows the generated post with LinkedIn-native styling.
- * 
- * Features:
- * - LinkedIn typography and colors
- * - Hashtag highlighting
- * - URL detection
- * - Copy to clipboard
- * - Character count display
+...
  */
-const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, onEdit }) => {
+const PostPreviewComponent: React.FC<PostPreviewProps> = ({
+    preview,
+    imageUrl,
+    onEdit,
+    isEditing = false,
+    onToggleEditing
+}) => {
     const [copied, setCopied] = useState(false);
+    const [editContent, setEditContent] = useState(preview);
+
+    // Sync edit content when preview changes (unless currently editing)
+    React.useEffect(() => {
+        if (!isEditing) {
+            setEditContent(preview);
+        }
+    }, [preview, isEditing]);
 
     const handleCopy = async () => {
         if (!preview) return;
@@ -31,6 +41,13 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
         } catch {
             showToast.error('Failed to copy');
         }
+    };
+
+    const handleSaveEdit = () => {
+        if (onEdit) {
+            // onEdit prop now handles saving content
+        }
+        if (onToggleEditing) onToggleEditing(false);
     };
 
     // Format content with LinkedIn-style highlighting
@@ -67,7 +84,8 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
         });
     };
 
-    const charCount = preview?.length || 0;
+    const displayContent = isEditing ? editContent : preview;
+    const charCount = displayContent?.length || 0;
     const isNearLimit = charCount > 2700;
     const isOverLimit = charCount > 3000;
 
@@ -87,41 +105,78 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
                     </div>
                 </div>
 
-                {preview && (
+                {(preview || isEditing) && (
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={handleCopy}
-                            className={`px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-1.5 ${copied
-                                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                                : 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200'
-                                }`}
-                        >
-                            {copied ? (
-                                <>
+                        {!isEditing ? (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        if (onToggleEditing) onToggleEditing(true);
+                                        setEditContent(preview);
+                                    }}
+                                    className="px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all flex items-center gap-1.5"
+                                >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Copied!
-                                </>
-                            ) : (
-                                <>
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                    Copy
-                                </>
-                            )}
-                        </button>
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={handleCopy}
+                                    className={`px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-1.5 ${copied
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                        : 'bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200'
+                                        }`}
+                                >
+                                    {copied ? (
+                                        <>
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            Copied!
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            </svg>
+                                            Copy
+                                        </>
+                                    )}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        if (onToggleEditing) onToggleEditing(false);
+                                    }}
+                                    className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (onEdit) onEdit(editContent);
+                                        if (onToggleEditing) onToggleEditing(false);
+                                        showToast.success('Changes saved');
+                                    }}
+                                    className="px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium"
+                                >
+                                    Save
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
 
             {/* Post Preview Card */}
             <div
-                className="bg-gray-50 dark:bg-[#1d2226] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[350px] overflow-y-auto"
+                className={`bg-gray-50 dark:bg-[#1d2226] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden ${isEditing ? 'h-[400px]' : 'max-h-[350px] overflow-y-auto'}`}
                 style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
             >
-                {preview ? (
+                {preview || isEditing ? (
                     <>
                         {/* Author header */}
                         <div className="flex items-start gap-3 p-4 pb-0">
@@ -140,14 +195,24 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
                         </div>
 
                         {/* Post content */}
-                        <div className="flex-1 px-4 py-3 overflow-y-auto">
-                            <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-                                {formatContent(preview)}
-                            </div>
+                        <div className="flex-1 px-4 py-3 h-full">
+                            {isEditing ? (
+                                <textarea
+                                    value={editContent}
+                                    onChange={(e) => setEditContent(e.target.value)}
+                                    className="w-full h-[calc(100%-2rem)] bg-white dark:bg-black/20 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm text-gray-900 dark:text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Write your post here..."
+                                    autoFocus
+                                />
+                            ) : (
+                                <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                                    {formatContent(preview)}
+                                </div>
+                            )}
                         </div>
 
                         {/* Image if present */}
-                        {imageUrl && (
+                        {!isEditing && imageUrl && (
                             <div className="border-t border-gray-100 dark:border-gray-700 relative w-full h-32">
                                 <Image
                                     src={imageUrl}
@@ -161,12 +226,14 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
                         )}
 
                         {/* Engagement bar */}
-                        <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700 mt-auto">
-                            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
-                                <span>👍 0</span>
-                                <span>0 comments • 0 reposts</span>
+                        {!isEditing && (
+                            <div className="px-4 py-2 border-t border-gray-100 dark:border-gray-700 mt-auto">
+                                <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
+                                    <span>👍 0</span>
+                                    <span>0 comments • 0 reposts</span>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </>
                 ) : (
                     /* Empty state */
@@ -185,7 +252,7 @@ const PostPreviewComponent: React.FC<PostPreviewProps> = ({ preview, imageUrl, o
             </div>
 
             {/* Footer with character count and tips */}
-            {preview && (
+            {(preview || isEditing) && (
                 <div className="mt-4 space-y-3">
                     {/* Character count */}
                     <div className="flex items-center justify-between text-sm">

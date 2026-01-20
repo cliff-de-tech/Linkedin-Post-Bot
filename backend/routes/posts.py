@@ -99,9 +99,6 @@ except ImportError:
 try:
     from middleware.clerk_auth import get_current_user
 except ImportError:
-try:
-    from middleware.clerk_auth import get_current_user
-except ImportError:
     get_current_user = None
 
 from services.db import get_database

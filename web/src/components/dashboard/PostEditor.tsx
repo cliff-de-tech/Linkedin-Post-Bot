@@ -46,6 +46,7 @@ interface PostEditorProps {
     setContext: (context: PostContext) => void;
     onGenerate: (model: ModelProvider) => void;  // Now passes selected model
     onPublish: (testMode: boolean) => void;
+    onWriteManually?: () => void;
     loading: boolean;
     status: string;
     hasPreview: boolean;
@@ -69,6 +70,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({
     setContext,
     onGenerate,
     onPublish,
+    onWriteManually,
     loading,
     status,
     hasPreview,
@@ -318,6 +320,17 @@ export const PostEditor: React.FC<PostEditorProps> = ({
                             </svg>
                         )}
                         Generate Preview
+                    </Button>
+
+                    <Button
+                        onClick={onWriteManually}
+                        variant="secondary"
+                        size="lg"
+                        fullWidth
+                        className="mb-3 bg-white/10 border-2 border-dashed border-gray-300 dark:border-white/20 hover:bg-white/20 dark:hover:bg-white/10"
+                        disabled={loading}
+                    >
+                        📝 Write from Scratch
                     </Button>
 
                     <div className="grid grid-cols-2 gap-3">

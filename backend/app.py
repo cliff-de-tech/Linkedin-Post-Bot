@@ -22,6 +22,10 @@ from pathlib import Path
 # Ensure backend directory is in Python path for imports like 'from core.config'
 # This allows running as both 'python backend/app.py' and 'uvicorn backend.app:app'
 backend_dir = Path(__file__).parent.resolve()
+# Add the project root to sys.path to allow imports from 'services'
+project_root = backend_dir.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 

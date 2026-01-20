@@ -105,3 +105,34 @@ export interface PostContext {
     date?: string;
     [key: string]: unknown;
 }
+
+/**
+ * Dashboard stats response
+ */
+export interface DashboardStats {
+    posts_generated: number;
+    credits_remaining: number;
+    posts_published: number;
+    posts_published_this_month: number;
+    posts_scheduled: number;
+    posts_this_month: number;
+    posts_this_week: number;
+    posts_last_week: number;
+    growth_percentage: number;
+    draft_posts: number;
+}
+
+/**
+ * Usage data response
+ */
+export interface UsageData {
+    tier: string;
+    posts_today: number;
+    posts_limit: number;
+    posts_remaining: number;
+    scheduled_count: number;
+    scheduled_limit: number;
+    scheduled_remaining: number;
+    resets_in_seconds: number;
+    resets_at: string | null;
+}

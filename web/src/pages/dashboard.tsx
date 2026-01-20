@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { generatePreview, publishPost, schedulePost } from '@/lib/api';
+import { generatePreview, publishPost, schedulePost, api } from '@/lib/api';
 import { useRouter } from 'next/router';
-import axios from 'axios';
 import { useUser, useAuth, UserButton } from '@clerk/nextjs';
 import { showToast } from '@/lib/toast';
 import SEOHead from '@/components/SEOHead';
@@ -25,8 +24,6 @@ import HistoryModal from '@/components/modals/HistoryModal';
 import FeedbackModal from '@/components/modals/FeedbackModal';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // Usage data type
 interface UsageData {
@@ -88,6 +85,7 @@ export default function Dashboard() {
     date: '2 hours ago',
   });
   const [preview, setPreview] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
 
@@ -131,12 +129,11 @@ export default function Dashboard() {
   const loadScheduledPosts = async (uid: string) => {
     try {
       const token = await getToken();
-      const response = await axios.get(`${API_BASE}/api/scheduled-posts/${uid}`, {
+      const response = await api.get(`/api/scheduled-posts/${uid}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (response.data.success) {
-        setScheduledPosts(response.data.posts || []);
-      }
+      setScheduledPosts(response.data.posts || []);
+      showToast.success(`Debug: Fetched ${(response.data.posts || []).length} scheduled posts`);
     } catch (error) {
       console.error('Failed to load scheduled posts:', error);
     }
@@ -189,7 +186,7 @@ export default function Dashboard() {
 
       // Check backend for saved settings
       const token = await getToken();
-      const response = await axios.post(`${API_BASE}/api/auth/refresh`, { user_id: uid }, {
+      const response = await api.post('/api/auth/refresh', { user_id: uid }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -252,7 +249,7 @@ export default function Dashboard() {
   const savePost = async (content: string, postStatus: string) => {
     try {
       const token = await getToken();
-      await axios.post(`${API_BASE}/api/posts`, {
+      await api.post('/api/posts', {
         user_id: userId,
         post_content: content,
         post_type: context.type,
@@ -320,7 +317,7 @@ export default function Dashboard() {
         const repoPath = activityContext.full_repo;
         const [owner, repo] = repoPath.split('/');
         if (owner && repo) {
-          const response = await axios.get(`${API_BASE}/api/github/repo/${owner}/${repo}`);
+          const response = await api.get(`/api/github/repo/${owner}/${repo}`);
           if (response.data && response.data.total_commits) {
             setContext(prev => ({
               ...prev,
@@ -345,6 +342,16 @@ export default function Dashboard() {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleManualEdit = (newContent?: string) => {
+    if (newContent) {
+      setPreview(newContent);
+      // Note: We don't auto-save to DB here to avoid spamming drafts, 
+      // but the user can click "Test Mode" or "Publish" to save.
+      // Optionally, we could save as draft here. Let's do it for better UX.
+      savePost(newContent, 'draft');
+    }
   };
 
   // Show loading skeleton while checking authentication
@@ -647,6 +654,11 @@ export default function Dashboard() {
               setContext={setContext}
               onGenerate={handleGeneratePreview}
               onPublish={handlePublish}
+              onWriteManually={() => {
+                setPreview('');
+                setIsEditing(true);
+                showToast.success('Started blank post');
+              }}
               loading={loading}
               status={status}
               hasPreview={!!preview}
@@ -656,7 +668,7 @@ export default function Dashboard() {
                 setLoadingImages(true);
                 setShowImageSelector(true);
                 try {
-                  const response = await axios.post(`${API_BASE}/api/image/preview`, {
+                  const response = await api.post('/api/image/preview', {
                     post_content: preview || 'coding developer tech',
                     count: 6
                   });
@@ -671,7 +683,13 @@ export default function Dashboard() {
               onRemoveImage={() => setManualSelectedImage(null)}
             />
 
-            <PostPreview preview={preview} imageUrl={manualSelectedImage} />
+            <PostPreview
+              preview={preview}
+              imageUrl={manualSelectedImage}
+              onEdit={handleManualEdit}
+              isEditing={isEditing}
+              onToggleEditing={setIsEditing}
+            />
           </div>
         </div>
       </main>
@@ -723,7 +741,7 @@ export default function Dashboard() {
           onRefresh={async () => {
             setLoadingImages(true);
             try {
-              const response = await axios.post(`${API_BASE}/api/image/preview`, {
+              const response = await api.post('/api/image/preview', {
                 post_content: preview || 'coding developer tech',
                 count: 6
               });
