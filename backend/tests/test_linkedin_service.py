@@ -206,18 +206,16 @@ class TestPostToLinkedIn:
         assert result is False or result is None
     
     def test_post_to_linkedin_requires_token(self):
-        """Posting should require access token."""
+        """Posting should require access token and raise error without one."""
         from services.linkedin_service import post_to_linkedin
         
-        # Without token, should not attempt API call
-        result = post_to_linkedin(
-            "Test post content",
-            access_token=None,
-            linkedin_user_urn="urn:li:person:test123"
-        )
-        
-        # Should return False without token
-        assert result is False or result is None
+        # Without token, should raise RuntimeError
+        with pytest.raises(RuntimeError, match='Missing access_token'):
+            post_to_linkedin(
+                "Test post content",
+                access_token=None,
+                linkedin_user_urn="urn:li:person:test123"
+            )
 
 
 class TestAPICompliance:

@@ -590,7 +590,7 @@ async def get_templates():
         {"id": "storytelling", "name": "Storytelling", "description": "Narrative-driven content"},
         {"id": "educational", "name": "Educational", "description": "Teaching and sharing knowledge"},
     ]
-    return templates
+    return {"templates": templates}
 
 
 # =============================================================================

@@ -116,16 +116,13 @@ class TestHashtagSynthesis:
 class TestGeneratePostWithAI:
     """Tests for the main AI generation function."""
     
-    @patch('services.ai_service.client')
-    def test_generate_post_with_push_context(self, mock_client):
+    @patch('services.ai_service._generate_with_groq')
+    def test_generate_post_with_push_context(self, mock_groq):
         """Push event context should generate a post."""
         from services.ai_service import generate_post_with_ai
         
-        # Mock the Groq response
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Just pushed some code! #coding #developer"
-        mock_client.chat.completions.create.return_value = mock_response
+        # Mock the Groq generation function
+        mock_groq.return_value = "Just pushed some code! #coding #developer"
         
         context = {
             "type": "push",
@@ -140,15 +137,12 @@ class TestGeneratePostWithAI:
         assert result is not None
         assert len(result) > 0
     
-    @patch('services.ai_service.client')
-    def test_generate_post_with_pr_context(self, mock_client):
+    @patch('services.ai_service._generate_with_groq')
+    def test_generate_post_with_pr_context(self, mock_groq):
         """Pull request context should generate a post."""
         from services.ai_service import generate_post_with_ai
         
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Just opened a PR! #opensource"
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = "Just opened a PR! #opensource"
         
         context = {
             "type": "pull_request",
@@ -163,15 +157,12 @@ class TestGeneratePostWithAI:
         
         assert result is not None
     
-    @patch('services.ai_service.client')
-    def test_generate_post_with_custom_api_key(self, mock_client):
+    @patch('services.ai_service._generate_with_groq')
+    def test_generate_post_with_custom_api_key(self, mock_groq):
         """Custom Groq API key should be used when provided."""
         from services.ai_service import generate_post_with_ai
         
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Test post content"
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = "Test post content"
         
         context = {"type": "generic"}
         
@@ -180,28 +171,27 @@ class TestGeneratePostWithAI:
         
         assert result is not None
     
-    @patch('services.ai_service.client', None)
-    def test_generate_post_returns_none_when_client_unavailable(self):
-        """Should return None or handle gracefully when Groq client unavailable."""
+    @patch('services.ai_service._generate_with_groq')
+    def test_generate_post_returns_none_when_generation_fails(self, mock_groq):
+        """Should return None when Groq generation fails."""
         from services.ai_service import generate_post_with_ai
+        
+        # Mock the Groq function to return None (simulating failure)
+        mock_groq.return_value = None
         
         context = {"type": "push", "commits": 1, "repo": "test"}
         
-        # Should not crash, should return None or empty
+        # Should return None when generation fails
         result = generate_post_with_ai(context)
         
-        # Depending on implementation, either None or a fallback message
-        assert result is None or isinstance(result, str)
+        assert result is None
     
-    @patch('services.ai_service.client')
-    def test_generate_post_with_different_styles(self, mock_client):
+    @patch('services.ai_service._generate_with_groq')
+    def test_generate_post_with_different_styles(self, mock_groq):
         """Different styles should result in different prompts being used."""
         from services.ai_service import generate_post_with_ai
         
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "Post content"
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_groq.return_value = "Post content"
         
         context = {"type": "generic"}
         
