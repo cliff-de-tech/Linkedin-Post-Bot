@@ -121,7 +121,7 @@ export default function Settings() {
     if (!isLoaded || !userId) return;
     setMounted(true);
     loadConnectionStatus();
-  }, [isLoaded, userId, shouldRefresh]);
+  }, [isLoaded, userId, shouldRefresh, loadConnectionStatus]);
 
   // LinkedIn OAuth
   const handleConnectLinkedIn = async () => {

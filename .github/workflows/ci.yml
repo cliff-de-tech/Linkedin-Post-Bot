@@ -87,14 +87,55 @@ jobs:
   frontend-build:
     name: Frontend Build
     runs-on: ubuntu-latest
-    
-    defaults:
-      run:
-        working-directory: web
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Start backend server
+        working-directory: backend
+        run: |
+          python app.py &
+          echo $! > backend.pid
+        env:
+          LINKEDIN_CLIENT_ID: test_client_id
+          LINKEDIN_CLIENT_SECRET: test_client_secret
+          GROQ_API_KEY: test_groq_key
+          OPENAI_API_KEY: test_openai_key
+          ANTHROPIC_API_KEY: test_anthropic_key
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          REDIS_URL: redis://localhost:6379/0
+          ENCRYPTION_KEY: Ag45Scx9q_Q6w3xF8Lz5j2p7n9v0k1m3b5v7c9x1z3m=
+          CLERK_ISSUER: https://test-clerk.accounts.dev
+          STRIPE_SECRET_KEY: sk_test_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_test_placeholder
+
+      - name: Wait for backend to be ready
+        run: |
+          echo "Waiting for backend to be healthy..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+              echo "Backend is healthy!"
+              exit 0
+            fi
+            echo "Attempt $i/30: Backend not ready yet..."
+            sleep 2
+          done
+          echo "Backend failed to start in time"
+          exit 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -103,15 +144,31 @@ jobs:
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
+        working-directory: web
         run: npm ci
 
+      - name: Generate TypeScript types from OpenAPI
+        run: npm run generate:types
+        env:
+          API_URL: http://localhost:8000
+
       - name: Build application
+        working-directory: web
         run: npm run build
         env:
           # Required for build but not for functionality
           NEXT_PUBLIC_API_URL: https://api.example.com
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+
+      - name: Stop backend server
+        if: always()
+        working-directory: backend
+        run: |
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) || true
+            rm backend.pid
+          fi
 
   # ============================================
   # Python Linting
