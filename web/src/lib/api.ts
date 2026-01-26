@@ -12,7 +12,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // =============================================================================
 
 export interface GeneratePreviewRequest {
-  context?: string;
+  context?: any;  // PostContext object or string
   user_id: string;
   model?: string;
 }
@@ -24,23 +24,25 @@ export interface GeneratePreviewResponse {
 }
 
 export interface PublishPostRequest {
-  user_id: string;
-  post_content: string;
+  user_id?: string;
+  post_content?: string;
   image_url?: string;
   test_mode?: boolean;
   post_id?: string;
+  context?: any;  // PostContext object for publishing
 }
 
 export interface PublishPostResponse {
   success?: boolean;
   error?: string;
   post_url?: string;
+  post?: string;  // Generated post content (when test_mode is true)
 }
 
 export interface SchedulePostRequest {
   user_id: string;
   post_content: string;
-  scheduled_time: string;
+  scheduled_time: string | number;  // Can be timestamp or ISO string
   image_url?: string;
 }
 
@@ -151,9 +153,103 @@ export async function schedulePost(
 }
 
 /**
- * Default export for backward compatibility
+ * Handle LinkedIn OAuth callback (stub for compatibility)
+ * This function is imported but not currently used.
+ * 
+ * @deprecated This function is not implemented and should not be called
+ */
+export async function handleLinkedInCallback(): Promise<void> {
+  throw new Error('handleLinkedInCallback is not implemented');
+}
+
+// =============================================================================
+// AXIOS-LIKE API CLIENT
+// =============================================================================
+
+/**
+ * Generic HTTP request interface compatible with axios
+ */
+interface RequestConfig {
+  headers?: Record<string, string>;
+  params?: Record<string, any>;
+}
+
+/**
+ * Generic HTTP GET request
+ * 
+ * @param url - The URL to fetch
+ * @param config - Request configuration
+ * @returns Promise with response object
+ */
+async function get(url: string, config?: RequestConfig): Promise<{ data: any }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...config?.headers,
+  };
+
+  let fullUrl = `${API_BASE}${url}`;
+  
+  // Add query parameters if provided
+  if (config?.params) {
+    const params = new URLSearchParams();
+    Object.entries(config.params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        params.append(key, String(value));
+      }
+    });
+    const queryString = params.toString();
+    if (queryString) {
+      fullUrl += `?${queryString}`;
+    }
+  }
+
+  const response = await fetch(fullUrl, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return { data };
+}
+
+/**
+ * Generic HTTP POST request
+ * 
+ * @param url - The URL to post to
+ * @param body - The request body
+ * @param config - Request configuration
+ * @returns Promise with response object
+ */
+async function post(url: string, body?: any, config?: RequestConfig): Promise<{ data: any }> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...config?.headers,
+  };
+
+  const response = await fetch(`${API_BASE}${url}`, {
+    method: 'POST',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to post to ${url}: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return { data };
+}
+
+/**
+ * Default export with axios-like interface
  */
 export const api = {
+  get,
+  post,
   generatePreview,
   publishPost,
   schedulePost,
