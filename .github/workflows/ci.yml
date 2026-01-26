@@ -111,7 +111,7 @@ jobs:
         env:
           # Required for build but not for functionality
           NEXT_PUBLIC_API_URL: https://api.example.com
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_placeholder
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
 
   # ============================================
   # Python Linting
