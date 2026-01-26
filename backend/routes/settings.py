@@ -73,6 +73,17 @@ async def get_settings(user_id: str):
             }
         return settings
     except Exception as e:
+        # Handle missing database table gracefully
+        error_str = str(e).lower()
+        if "no such table" in error_str or "relation" in error_str and "does not exist" in error_str:
+            logger.warning(f"Database table not found for user {user_id}, returning default settings")
+            return {
+                "user_id": user_id,
+                "github_username": "",
+                "preferences": {},
+                "persona": {},
+                "onboarding_complete": False
+            }
         logger.error(f"Error getting settings for {user_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
