@@ -11,8 +11,13 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // TYPE DEFINITIONS
 // =============================================================================
 
+/**
+ * Context for post generation - can be a string or structured object
+ */
+export type PostContextInput = string | Record<string, unknown>;
+
 export interface GeneratePreviewRequest {
-  context?: any;  // PostContext object or string
+  context?: PostContextInput;
   user_id: string;
   model?: string;
 }
@@ -29,7 +34,7 @@ export interface PublishPostRequest {
   image_url?: string;
   test_mode?: boolean;
   post_id?: string;
-  context?: any;  // PostContext object for publishing
+  context?: PostContextInput;  // PostContext object for publishing
 }
 
 export interface PublishPostResponse {
@@ -154,12 +159,14 @@ export async function schedulePost(
 
 /**
  * Handle LinkedIn OAuth callback (stub for compatibility)
- * This function is imported but not currently used.
+ * This function is imported but not currently used in the codebase.
  * 
- * @deprecated This function is not implemented and should not be called
+ * @deprecated This function is not implemented. Do not call it.
+ * @returns Promise that logs a warning and resolves
  */
 export async function handleLinkedInCallback(): Promise<void> {
-  throw new Error('handleLinkedInCallback is not implemented');
+  console.warn('handleLinkedInCallback is not implemented and should not be called');
+  return Promise.resolve();
 }
 
 // =============================================================================
