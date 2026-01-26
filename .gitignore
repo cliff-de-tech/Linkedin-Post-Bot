@@ -55,6 +55,9 @@ wheels/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# But allow web/src/lib (TypeScript source files)
+!web/src/lib/
+
 # Testing
 .tox/
 .nox/
