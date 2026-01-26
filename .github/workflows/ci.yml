@@ -111,6 +111,7 @@ jobs:
           python app.py &
           echo $! > backend.pid
         env:
+          PORT: 8000
           LINKEDIN_CLIENT_ID: test_client_id
           LINKEDIN_CLIENT_SECRET: test_client_secret
           GROQ_API_KEY: test_groq_key
