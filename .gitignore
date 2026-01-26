@@ -143,7 +143,7 @@ last_generated_post.txt
 
 # Shared contracts (auto-generated from OpenAPI)
 # Only the generator script is committed
-shared/contracts/index.d.ts
-shared/contracts/openapi.json
-shared/contracts/api.ts
+# shared/contracts/index.d.ts
+# shared/contracts/openapi.json
+# shared/contracts/api.ts
 !shared/contracts/README.md
