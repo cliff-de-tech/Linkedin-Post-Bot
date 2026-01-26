@@ -74,8 +74,10 @@ jobs:
       - name: Start FastAPI backend
         run: |
           cd backend
+          BACKEND_LOG="${{ github.workspace }}/backend.log"
+          
           # Start backend with logging
-          python -m uvicorn app:app --host 0.0.0.0 --port 8000 > ../backend.log 2>&1 &
+          python -m uvicorn app:app --host 0.0.0.0 --port 8000 > "$BACKEND_LOG" 2>&1 &
           BACKEND_PID=$!
           echo "Backend started with PID: $BACKEND_PID"
           
@@ -86,7 +88,7 @@ jobs:
           # Check if process is still running
           if ! ps -p $BACKEND_PID > /dev/null; then
             echo "❌ Backend process died! Logs:"
-            cat ../backend.log
+            cat "$BACKEND_LOG"
             exit 1
           fi
           
@@ -94,7 +96,7 @@ jobs:
           echo "Checking backend health..."
           curl --retry 10 --retry-delay 3 --retry-connrefused http://localhost:8000/health || {
             echo "❌ Backend health check failed! Logs:"
-            cat ../backend.log
+            cat "$BACKEND_LOG"
             exit 1
           }
           echo "✅ Backend is ready!"
