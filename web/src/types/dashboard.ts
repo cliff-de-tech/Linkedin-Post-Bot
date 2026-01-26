@@ -34,7 +34,7 @@ export type FullPublishRequest = components['schemas']['PublishFullRequest'];
 export type ScanRequest = components['schemas']['ScanRequest'];
 
 /** Request body for scheduling a post */
-export type SchedulePostRequest = components['schemas']['ScheduleRequest'];
+export type SchedulePostRequest = components['schemas']['routes__posts__ScheduleRequest'];
 
 /** User settings request */
 export type UserSettingsRequest = components['schemas']['SettingsRequest'];
