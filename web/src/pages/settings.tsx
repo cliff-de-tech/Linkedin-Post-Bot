@@ -8,7 +8,7 @@
  * - Environment variables (GROQ_API_KEY, LINKEDIN_CLIENT_SECRET, etc.)
  * - Encrypted token_store.db (OAuth tokens)
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
 import { useUser, UserButton, useAuth } from '@clerk/nextjs';
@@ -90,7 +90,7 @@ export default function Settings() {
   }, []);
 
   // Load connection status function
-  const loadConnectionStatus = async () => {
+  const loadConnectionStatus = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     try {
@@ -114,7 +114,7 @@ export default function Settings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, getToken]);
 
   // Load connection status on mount and when shouldRefresh changes
   useEffect(() => {
